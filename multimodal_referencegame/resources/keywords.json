@@ -1,0 +1,14 @@
+{
+    "en":
+    {
+        "expression": "expression",
+        "answer": "answer",
+        "accepted_answers": [
+            ["1", "1st", "first"],
+            ["2", "2nd", "second"],
+            ["3", "3rd", "third"]
+        ],
+        "target": "the target",
+        "distractor": "a distractor"
+    }
+}

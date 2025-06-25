@@ -15,3 +15,7 @@ game_registry.json
 model_registry.json
 # custom backends
 *_api.py
+multimodal_referencegame/resources/docci_dataset/docci_metadata.jsonlines
+multimodal_referencegame/resources/CLEVR_v1.0/scenes/CLEVR_train_scenes.json
+.gitignore
+multimodal_referencegame/resources/CLEVR_v1.0/scenes/CLEVR_val_scenes.json

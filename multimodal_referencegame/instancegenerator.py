@@ -12,22 +12,60 @@ import shutil
 import matplotlib.pyplot as plt
 import json
 import logging
+from collections import OrderedDict
 
 random.seed(123)
 
 logger = logging.getLogger(__name__)
 
 MAX_NUMBER_INSTANCES = 30
+LANGUAGES = ['en']
 
 class ReferenceGameInstanceGenerator(GameInstanceGenerator):
 
     def __init__(self):
         super().__init__(os.path.dirname(os.path.abspath(__file__)))
 
+    def general_instance(self, language):
+        """
+        returns a dictionary with the initial prompts and keywords for the game,
+        to be added to each game instance
+        """
+        instance = {}
+        instance['player_1_prompt_header'] = self.load_template(os.path.join("resources", "initial_prompts", language, "player_1_prompt_images.template"))
+        instance['player_2_prompt_header'] = self.load_template(os.path.join("resources", "initial_prompts", language, "player_2_prompt_images.template"))
+        keywords = self.load_json("resources/keywords.json")[language]
+        instance['player_1_response_pattern'] = f'^{keywords["expression"]}:\s(?P<content>.+)\n*(?P<remainder>.*)'
+        content = '|'.join([item for sublist in keywords['accepted_answers'] for item in sublist])
+        instance['player_2_response_pattern'] = f'^{keywords["answer"]}:\s(?P<content>{content})\n*(?P<remainder>.*)'
+        # 'content' can directly be compared to gold answer
+        # 'remainder' should be empty (if models followed the instructions)
+
+        # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
+        instance["player_1_response_tag"] = f"{keywords['expression']}:"
+        instance["player_2_response_tag"] = f"{keywords['answer']}:"
+        instance["target"] = keywords['target']
+        instance["distractor"] = keywords['distractor']
+        instance["accepted_answers"] = keywords['accepted_answers']
+        return instance
+    
+    def prepare_player_1_prompt(self, prompt: str, target_img: int):
+        """
+        Prepares the player A prompt by replacing FIRST/SECOND/THIRD_IMAGE placeholders with "the target"/"a distractor
+        """
+        if target_img == 1:
+            return prompt.replace("FIRST_IMAGE", "the target").replace("SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "a distractor")
+        elif target_img == 2:
+            return prompt.replace("FIRST_IMAGE", "a distractor").replace("SECOND_IMAGE", "the target").replace("THIRD_IMAGE", "a distractor")
+        elif target_img == 3:
+            return prompt.replace("FIRST_IMAGE", "a distractor").replace("SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "the target")
+        else:
+            raise ValueError("target_img must be 1, 2 or 3")
+
     def get_ade_dataset(self):
         sequences = self.load_csv(os.path.join("resources", "sequences.csv"))
 
-        aed_dataset = dict()
+        ade_dataset = dict()
         for s in sequences:
             line = s[0].split("\t")
 
@@ -37,11 +75,11 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
             image_path = os.path.join("resources", "ade_images", line[3].split("/")[-1])
             image_category = line[4]
 
-            if image_category not in aed_dataset:
-                aed_dataset[image_category] = [image_path]
+            if image_category not in ade_dataset:
+                ade_dataset[image_category] = [image_path]
             else:
-                aed_dataset[image_category].append(image_path)
-        return aed_dataset
+                ade_dataset[image_category].append(image_path)
+        return ade_dataset
 
     def get_docci_dataset(self):
 
@@ -74,14 +112,14 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
             data = self.load_json(os.path.join('resources', 'CLEVR_v1.0', 'scenes', file))
 
             for scene in data['scenes']:
-
                 if file == 'CLEVR_train_scenes.json':
                     image_path = os.path.join('resources', 'CLEVR_v1.0', 'images', 'train', scene['image_filename'])
                 else:
                     image_path = os.path.join('resources', 'CLEVR_v1.0', 'images', 'val', scene['image_filename'])
 
-                if os.path.exists(image_path) == False:
-                    continue
+                # TODO: for just creating image category dict, we don't need this check
+                # if os.path.exists(image_path) == False:
+                #     continue
 
                 for object in scene['objects']:
 
@@ -98,7 +136,6 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
                     else:
                         if image_category not in image2category[image_path]:
                             image2category[image_path].append(image_category)
-
 
         return category2image, image2category
 
@@ -138,11 +175,8 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
             saved_grids[grid] = os.path.join("games", "multimodal_referencegame", file_path)
         return saved_grids[grid]
 
-    def generate_grid_instances(self):
+    def generate_grid_instances(self, general_instance=None, language=None):
         # GRID EXPERIMENT
-        player_a_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-        player_b_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_b_prompt_images.template"))
-
         instances = {}
         saved_grids = {}
 
@@ -154,11 +188,9 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
             game_counter = 0
             experiment = self.add_experiment(exp['name'])
 
-
-
             for instance in exp['game_instances']:
 
-                player1_target_grid =self.process_grid(saved_grids, instance['player_1_target_grid'])
+                player_1_target_grid = self.process_grid(saved_grids, instance['player_1_target_grid'])
                 player_1_second_grid = self.process_grid(saved_grids, instance['player_1_second_grid'])
                 player_1_third_grid = self.process_grid(saved_grids, instance['player_1_third_grid'])
 
@@ -168,396 +200,180 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
 
                 game_instance = self.add_game_instance(experiment, game_counter)
 
-                game_instance["player_1_prompt_header"] = player_a_prompt_header.replace('FIRST_IMAGE', 'the target').replace('SECOND_IMAGE', 'a distractor').replace('THIRD_IMAGE', 'a distractor')
-                game_instance['player_1_first_image'] = player1_target_grid
-                game_instance['player_1_second_image'] = player_1_second_grid
-                game_instance['player_1_third_image'] = player_1_third_grid
-
-                game_instance["player_2_prompt_header"] = player_b_prompt_header
-                game_instance['player_2_first_image'] = player_2_first_grid
-                game_instance['player_2_second_image'] = player_2_second_grid
-                game_instance['player_2_third_image'] = player_2_third_grid
-                game_instance['target_image_name'] = instance['target_grid_name']
-                game_instance['player_1_response_pattern'] = '^expression:\s(?P<content>.+)\n*(?P<remainder>.*)'
-                # named groups:
-                # 'content' captures only the generated referring expression
-                # 'remainder' should be empty (if models followed the instructions)
-                game_instance[
-                    'player_2_response_pattern'] = '^answer:\s(?P<content>first|second|third|1|2|3|1st|2nd|3rd)\n*(?P<remainder>.*)'
-                # 'content' can directly be compared to gold answer
-                # 'remainder' should be empty (if models followed the instructions)
-
-                # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
-                game_instance["player_1_response_tag"] = "expression:"
-                game_instance["player_2_response_tag"] = "answer:"
+                # import all keywords from the general instance
+                game_instance.update(general_instance)
+                game_instance['player_1_prompt_header'] = self.prepare_player_1_prompt(game_instance['player_1_prompt_header'], 1)
+                game_instance['player_1_images'] = [player_1_target_grid, player_1_second_grid, player_1_third_grid]
+                game_instance['player_2_images'] = [player_2_first_grid, player_2_second_grid, player_2_third_grid]
+                game_instance['target_image_number'] = instance['target_grid_name'][2]
 
                 game_counter += 1
 
-    def generate_scene_instances(self):
-        player_a_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-        player_b_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_b_prompt_images.template"))
 
-        aed_dataset = self.get_ade_dataset()
+    def add_shuffled_instances(self, general_instance: dict, image_paths: list[str], experiment: OrderedDict, game_counter: int):
+        for target_p2 in [1, 2, 3]:
+            game_instance = self.add_game_instance(experiment, game_counter)
+            game_instance.update(general_instance)
+            game_instance.update(self.prepare_instance(game_instance['player_1_prompt_header'], image_paths, target_p2))
 
-        game_counter = 0
-        image_counter = 1
-        experiment = self.add_experiment('ADE_images')
-        for target_category in aed_dataset:
-
-            target_category_images = aed_dataset[target_category]
-            target_image = self.select_random_item(target_category_images)
-            shutil.copyfile(target_image, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
-            target_image_path = os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg")
-            image_counter += 1
-
-            # remove the target image from the list, select another image from the same category
-            target_category_images.remove(target_image)
-            distractor1 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor1, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
-            distractor1_path = os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg")
-            image_counter += 1
-
-            # remove the target image from the list, select another image from the same category
-            target_category_images.remove(distractor1)
-            distractor2 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor2, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
-            distractor2_path = os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg")
-            image_counter += 1
-
-            for i in [1, 2, 3]:
-
-                player_a_prompt_header = self.load_template(
-                    os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-                game_instance = self.add_game_instance(experiment, game_counter)
-
-                player_1_first_image = ""
-                player_1_second_image = ""
-                player_1_third_image = ""
-                player_2_first_image = ""
-                player_2_second_image = ""
-                player_2_third_image = ""
-
-                if i == 1:
-                    player_1_first_image = target_image_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = distractor2_path
-
-                    player_2_first_image = distractor1_path
-                    player_2_second_image = target_image_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["second", "2", "2nd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "the target").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "a distractor")
-
-                elif i == 2:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = target_image_path
-
-                    player_2_first_image = target_image_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["first", "1", "1st"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "the target")
-
-                elif i == 3:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = target_image_path
-                    player_1_third_image = distractor1_path
-
-                    player_2_first_image = distractor2_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = target_image_path
-
-                    player_2_target_name = ["third", "3", "3rd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "the target").replace("THIRD_IMAGE", "a distractor")
-
-                game_instance["player_1_prompt_header"] = player_a_prompt_header
-                game_instance['player_1_first_image'] = player_1_first_image
-                game_instance['player_1_second_image'] = player_1_second_image
-                game_instance['player_1_third_image'] = player_1_third_image
-
-                game_instance["player_2_prompt_header"] = player_b_prompt_header
-                game_instance['player_2_first_image'] = player_2_first_image
-                game_instance['player_2_second_image'] = player_2_second_image
-                game_instance['player_2_third_image'] = player_2_third_image
-                game_instance['target_image_name'] = player_2_target_name
-                game_instance['player_1_response_pattern'] = '^expression:\s(?P<content>.+)\n*(?P<remainder>.*)'
-                # named groups:
-                # 'content' captures only the generated referring expression
-                # 'remainder' should be empty (if models followed the instructions)
-                game_instance[
-                    'player_2_response_pattern'] = '^answer:\s(?P<content>first|second|third|1|2|3|1st|2nd|3rd)\n*(?P<remainder>.*)'
-                # 'content' can directly be compared to gold answer
-                # 'remainder' should be empty (if models followed the instructions)
-
-                # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
-                game_instance["player_1_response_tag"] = "expression:"
-                game_instance["player_2_response_tag"] = "answer:"
-
-                game_counter += 1
-
-                if game_counter >= MAX_NUMBER_INSTANCES:
-                    break
+            game_counter += 1
 
             if game_counter >= MAX_NUMBER_INSTANCES:
                 break
 
-    def generate_scene_static_target_instances(self):
-        player_a_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-        player_b_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_b_prompt_images.template"))
+        return game_counter
 
-        aed_dataset = self.get_ade_dataset()
+
+    def prepare_instance(self, player_1_prompt_header: str, image_paths: list[str], target_p2: int):
+        instance = {}
+        # this assumes that image_paths[0] is the target image, the others are distractors
+        if target_p2 == 1:
+            instance["player_1_images"] = [image_paths[2], image_paths[1], image_paths[0]]
+            instance["player_2_images"] = image_paths
+            target_p1 = 3
+
+        elif target_p2 == 2:
+            instance["player_1_images"] = image_paths
+            instance["player_2_images"] = [image_paths[1], image_paths[0], image_paths[2]]
+            target_p1 = 1
+
+        elif target_p2 == 3:
+            instance["player_1_images"] = [image_paths[2], image_paths[0], image_paths[1]]
+            instance["player_2_images"] = [image_paths[2], image_paths[1], image_paths[0]]
+            target_p1 = 2
+        
+        instance["player_1_prompt_header"] = self.prepare_player_1_prompt(player_1_prompt_header, target_p1)
+        instance["target_image_number"] = target_p2
+        
+        return instance
+
+    def generate_scene_instances(self, general_instance=None, language=None, sample_images=False):
+        ade_dataset = self.get_ade_dataset()
+
+        game_counter = 0
+        image_counter = 1
+        experiment = self.add_experiment('ADE_images')
+        for target_category in ade_dataset:
+
+            image_paths = []
+
+            if sample_images:
+                target_category_images = ade_dataset[target_category]
+                target_image = self.select_random_item(target_category_images)
+                shutil.copyfile(target_image, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_counter += 1
+
+            if sample_images:
+                # remove the target image from the list, select another image from the same category
+                target_category_images.remove(target_image)
+                distractor1 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor1, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_counter += 1
+
+            if sample_images:
+                # remove the target image from the list, select another image from the same category
+                target_category_images.remove(distractor1)
+                distractor2 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor2, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_counter += 1
+
+            game_counter = self.add_shuffled_instances(general_instance=general_instance, image_paths=image_paths, experiment=experiment, game_counter=game_counter)
+
+            if game_counter >= MAX_NUMBER_INSTANCES:
+                break
+
+    def generate_scene_static_target_instances(self, general_instance=None, language=None, sample_images=False):
+        ade_dataset = self.get_ade_dataset()
 
         game_counter = 0
         image_counter = 1
 
         if os.path.exists(os.path.join("resources", "scene_images")):
-            files = os.listdir(os.path.join("resources", "scene_images"))
-            if len(files) > 0:
-                image_counter = len(files) + 1
+            # image count used for dynamic instances:
+            # next multiple of 3, starting from MAX_NUMBER_INSTANCES
+            if MAX_NUMBER_INSTANCES % 3 == 0:
+                image_counter = MAX_NUMBER_INSTANCES
+            else:
+                image_counter = MAX_NUMBER_INSTANCES + (3 - (MAX_NUMBER_INSTANCES % 3))
+            # + 2, since the original sampling process skipped one image
+            image_counter += 2
 
         experiment = self.add_experiment('ADE_static_target_images')
 
-        target_image_path = ''
-        for target_category in aed_dataset:
-
-            if target_image_path == '':
-                target_category_images = aed_dataset[target_category]
-                target_image = self.select_random_item(target_category_images)
-                shutil.copyfile(target_image, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
-                target_image_path = os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg")
+        target_image = None
+        for target_category in ade_dataset:
+            if not target_image:
+                if sample_images:
+                    target_category_images = ade_dataset[target_category]
+                    target_image = self.select_random_item(target_category_images)
+                    shutil.copyfile(target_image, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
+                    target_category_images.remove(target_image)
+                target_image = os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg")
                 image_counter += 1
+
+            image_paths = [target_image]
+
+            if sample_images:
+                distractor1 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor1, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_counter += 1
+
+            if sample_images:
                 # remove the target image from the list, select another image from the same category
-                target_category_images.remove(target_image)
-
-            distractor1 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor1, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
-            distractor1_path = os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg")
+                target_category_images.remove(distractor1)
+                distractor2 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor2, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            # remove the target image from the list, select another image from the same category
-            target_category_images.remove(distractor1)
-            distractor2 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor2, os.path.join("resources", "scene_images", f"{str(image_counter)}.jpg"))
-            distractor2_path = os.path.join("games", "multimodal_referencegame", "resources", "scene_images", f"{str(image_counter)}.jpg")
-            image_counter += 1
-
-            for i in [1, 2, 3]:
-
-                player_a_prompt_header = self.load_template(
-                    os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-                game_instance = self.add_game_instance(experiment, game_counter)
-
-                player_1_first_image = ""
-                player_1_second_image = ""
-                player_1_third_image = ""
-                player_2_first_image = ""
-                player_2_second_image = ""
-                player_2_third_image = ""
-
-                if i == 1:
-                    player_1_first_image = target_image_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = distractor2_path
-
-                    player_2_first_image = distractor1_path
-                    player_2_second_image = target_image_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["second", "2", "2nd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "the target").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "a distractor")
-
-                elif i == 2:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = target_image_path
-
-                    player_2_first_image = target_image_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["first", "1", "1st"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "the target")
-
-                elif i == 3:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = target_image_path
-                    player_1_third_image = distractor1_path
-
-                    player_2_first_image = distractor2_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = target_image_path
-
-                    player_2_target_name = ["third", "3", "3rd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "the target").replace("THIRD_IMAGE", "a distractor")
-
-                game_instance["player_1_prompt_header"] = player_a_prompt_header
-                game_instance['player_1_first_image'] = player_1_first_image
-                game_instance['player_1_second_image'] = player_1_second_image
-                game_instance['player_1_third_image'] = player_1_third_image
-
-                game_instance["player_2_prompt_header"] = player_b_prompt_header
-                game_instance['player_2_first_image'] = player_2_first_image
-                game_instance['player_2_second_image'] = player_2_second_image
-                game_instance['player_2_third_image'] = player_2_third_image
-                game_instance['target_image_name'] = player_2_target_name
-                game_instance['player_1_response_pattern'] = '^expression:\s(?P<content>.+)\n*(?P<remainder>.*)'
-                # named groups:
-                # 'content' captures only the generated referring expression
-                # 'remainder' should be empty (if models followed the instructions)
-                game_instance[
-                    'player_2_response_pattern'] = '^answer:\s(?P<content>first|second|third|1|2|3|1st|2nd|3rd)\n*(?P<remainder>.*)'
-                # 'content' can directly be compared to gold answer
-                # 'remainder' should be empty (if models followed the instructions)
-
-                # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
-                game_instance["player_1_response_tag"] = "expression:"
-                game_instance["player_2_response_tag"] = "answer:"
-
-                game_counter += 1
-
-                if game_counter >= MAX_NUMBER_INSTANCES:
-                    break
+            game_counter = self.add_shuffled_instances(general_instance=general_instance, image_paths=image_paths, experiment=experiment, game_counter=game_counter)
 
             if game_counter >= MAX_NUMBER_INSTANCES:
                 break
 
-    def generate_docci_instances(self):
-        player_a_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-        player_b_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_b_prompt_images.template"))
-
+    def generate_docci_instances(self, general_instance=None, language=None, sample_images=False):
         docci_dataset = self.get_docci_dataset()
 
         game_counter = 0
         image_counter = 1
         experiment = self.add_experiment('DOCCI_images')
         for target_category in docci_dataset:
-
-            target_category_images = docci_dataset[target_category]
-            target_image = self.select_random_item(target_category_images)
-            shutil.copyfile(target_image, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
-            target_image_path = os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg")
+            image_paths = []
+            if sample_images:
+                target_category_images = docci_dataset[target_category]
+                target_image = self.select_random_item(target_category_images)
+                shutil.copyfile(target_image, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            # remove the target image from the list, select another image from the same category
-            target_category_images.remove(target_image)
-            distractor1 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor1, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
-            distractor1_path = os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg")
+            if sample_images:
+                # remove the target image from the list, select another image from the same category
+                target_category_images.remove(target_image)
+                distractor1 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor1, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            # remove the distractor1 image from the list, select another image from the same category
-            target_category_images.remove(distractor1)
-            distractor2 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor2, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
-            distractor2_path = os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg")
+            if sample_images:
+                # remove the distractor1 image from the list, select another image from the same category
+                target_category_images.remove(distractor1)
+                distractor2 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor2, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            for i in [1, 2, 3]:
-
-                player_a_prompt_header = self.load_template(
-                    os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-                game_instance = self.add_game_instance(experiment, game_counter)
-
-                player_1_first_image = ""
-                player_1_second_image = ""
-                player_1_third_image = ""
-                player_2_first_image = ""
-                player_2_second_image = ""
-                player_2_third_image = ""
-
-                if i == 1:
-                    player_1_first_image = target_image_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = distractor2_path
-
-                    player_2_first_image = distractor1_path
-                    player_2_second_image = target_image_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["second", "2", "2nd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "the target").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "a distractor")
-
-                elif i == 2:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = target_image_path
-
-                    player_2_first_image = target_image_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["first", "1", "1st"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "the target")
-
-                elif i == 3:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = target_image_path
-                    player_1_third_image = distractor1_path
-
-                    player_2_first_image = distractor2_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = target_image_path
-
-                    player_2_target_name = ["third", "3rd", "3"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "the target").replace("THIRD_IMAGE", "a distractor")
-
-                game_instance["player_1_prompt_header"] = player_a_prompt_header
-                game_instance['player_1_first_image'] = player_1_first_image
-                game_instance['player_1_second_image'] = player_1_second_image
-                game_instance['player_1_third_image'] = player_1_third_image
-
-                game_instance["player_2_prompt_header"] = player_b_prompt_header
-                game_instance['player_2_first_image'] = player_2_first_image
-                game_instance['player_2_second_image'] = player_2_second_image
-                game_instance['player_2_third_image'] = player_2_third_image
-                game_instance['target_image_name'] = player_2_target_name
-                game_instance['player_1_response_pattern'] = '^expression:\s(?P<content>.+)\n*(?P<remainder>.*)'
-                # named groups:
-                # 'content' captures only the generated referring expression
-                # 'remainder' should be empty (if models followed the instructions)
-                game_instance[
-                    'player_2_response_pattern'] = '^answer:\s(?P<content>first|second|third|1|2|3|1st|2nd|3rd)\n*(?P<remainder>.*)'
-                # 'content' can directly be compared to gold answer
-                # 'remainder' should be empty (if models followed the instructions)
-
-                # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
-                game_instance["player_1_response_tag"] = "expression:"
-                game_instance["player_2_response_tag"] = "answer:"
-
-                game_counter += 1
-
-                if game_counter >= MAX_NUMBER_INSTANCES:
-                    break
+            game_counter = self.add_shuffled_instances(general_instance=general_instance, image_paths=image_paths, experiment=experiment, game_counter=game_counter)
 
             if game_counter >= MAX_NUMBER_INSTANCES:
                 break
 
-    def generate_docci_static_target_instances(self):
-        player_a_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-        player_b_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_b_prompt_images.template"))
-
-        docci_dataset = self.get_docci_dataset()
+    def generate_docci_static_target_instances(self, general_instance=None, language=None, sample_images=False):
+        if sample_images:
+            docci_dataset = self.get_docci_dataset()
 
         game_counter = 0
         image_counter = 1
@@ -565,121 +381,49 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
 
 
         if os.path.exists(os.path.join("resources", "docci_images")):
-            files = os.listdir(os.path.join("resources", "docci_images"))
-            if len(files) > 0:
-                image_counter = len(files) + 1
+            # image count used for dynamic instances:
+            # next multiple of 3, starting from MAX_NUMBER_INSTANCES
+            if MAX_NUMBER_INSTANCES % 3 == 0:
+                image_counter = MAX_NUMBER_INSTANCES
+            else:
+                image_counter = MAX_NUMBER_INSTANCES + (3 - (MAX_NUMBER_INSTANCES % 3))
+            # + 2, since the original sampling process skipped one image
+            image_counter += 2
 
-        target_image_path = ''
-        target_category = 'dog breed'
+        # target_image_path = ''
+        if sample_images:
+            target_category = 'dog breed'
         # select the key from docci_dataset that has the most images
         # for category in docci_dataset:
         #     if target_category == '' or len(docci_dataset[category]) > len(docci_dataset[target_category]):
         #         target_category = category
 
-        if target_image_path == '':
+        if sample_images:
             target_category_images = docci_dataset[target_category]
             target_image = self.select_random_item(target_category_images)
             shutil.copyfile(target_image, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
-            target_image_path = os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg")
-            image_counter += 1
             target_category_images.remove(target_image)
+        target_image_path = os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg")
+        image_counter += 1
 
         while True:
+            target_images = [target_image_path]
 
-            distractor1 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor1, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
-            distractor1_path = os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg")
+            if sample_images:
+                distractor1 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor1, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
+            target_images.append(os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            # remove the distractor1 image from the list, select another image from the same category
-            target_category_images.remove(distractor1)
-            distractor2 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor2, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
-            distractor2_path = os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg")
+            if sample_images:
+                # remove the distractor1 image from the list, select another image from the same category
+                target_category_images.remove(distractor1)
+                distractor2 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor2, os.path.join("resources", "docci_images", f"{str(image_counter)}.jpg"))
+            target_images.append(os.path.join("games", "multimodal_referencegame", "resources", "docci_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            for i in [1, 2, 3]:
-
-                player_a_prompt_header = self.load_template(
-                    os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-                game_instance = self.add_game_instance(experiment, game_counter)
-
-                player_1_first_image = ""
-                player_1_second_image = ""
-                player_1_third_image = ""
-                player_2_first_image = ""
-                player_2_second_image = ""
-                player_2_third_image = ""
-
-                if i == 1:
-                    player_1_first_image = target_image_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = distractor2_path
-
-                    player_2_first_image = distractor1_path
-                    player_2_second_image = target_image_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["second", "2", "2nd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "the target").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "a distractor")
-
-                elif i == 2:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = target_image_path
-
-                    player_2_first_image = target_image_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["first", "1", "1st"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "the target")
-
-                elif i == 3:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = target_image_path
-                    player_1_third_image = distractor1_path
-
-                    player_2_first_image = distractor2_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = target_image_path
-
-                    player_2_target_name = ["third", "3rd", "3"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "the target").replace("THIRD_IMAGE", "a distractor")
-
-                game_instance["player_1_prompt_header"] = player_a_prompt_header
-                game_instance['player_1_first_image'] = player_1_first_image
-                game_instance['player_1_second_image'] = player_1_second_image
-                game_instance['player_1_third_image'] = player_1_third_image
-
-                game_instance["player_2_prompt_header"] = player_b_prompt_header
-                game_instance['player_2_first_image'] = player_2_first_image
-                game_instance['player_2_second_image'] = player_2_second_image
-                game_instance['player_2_third_image'] = player_2_third_image
-                game_instance['target_image_name'] = player_2_target_name
-                game_instance['player_1_response_pattern'] = '^expression:\s(?P<content>.+)\n*(?P<remainder>.*)'
-                # named groups:
-                # 'content' captures only the generated referring expression
-                # 'remainder' should be empty (if models followed the instructions)
-                game_instance[
-                    'player_2_response_pattern'] = '^answer:\s(?P<content>first|second|third|1|2|3|1st|2nd|3rd)\n*(?P<remainder>.*)'
-                # 'content' can directly be compared to gold answer
-                # 'remainder' should be empty (if models followed the instructions)
-
-                # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
-                game_instance["player_1_response_tag"] = "expression:"
-                game_instance["player_2_response_tag"] = "answer:"
-
-                game_counter += 1
-
-                if game_counter >= MAX_NUMBER_INSTANCES:
-                    break
+            game_counter = self.add_shuffled_instances(general_instance=general_instance, image_paths=target_images, experiment=experiment, game_counter=game_counter)
 
             if game_counter >= MAX_NUMBER_INSTANCES:
                 break
@@ -706,9 +450,7 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
 
         return distractor1
 
-    def generate_clevr_instances(self):
-        player_a_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-        player_b_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_b_prompt_images.template"))
+    def generate_clevr_instances(self, general_instance=None, language=None, sample_images=False):
 
         category2image, image2category = self.get_clevr_dataset()
 
@@ -716,267 +458,116 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
         image_counter = 1
         experiment = self.add_experiment('CLEVR_images')
         for target_category in category2image:
+            image_paths = []
+            if sample_images:
+                # TODO: the following code only sampled the target image, the distractors were later overwritten
 
-            target_category_images = category2image[target_category]
-            target_image = self.select_random_item(target_category_images)
+                target_category_images = category2image[target_category]
+                target_image = self.select_random_item(target_category_images)
 
-            target_categories = image2category[target_image]
-            image2category.pop(target_image)
-
-
-
-            distractor1 = self.select_distractor_for_clevr(target_categories, category2image, image2category)
-
-            image2category.pop(distractor1)
+                target_categories = image2category[target_image]
+                image2category.pop(target_image)
 
 
-            distractor2 = self.select_distractor_for_clevr(target_categories, category2image, image2category)
-            image2category.pop(distractor2)
+
+                distractor1 = self.select_distractor_for_clevr(target_categories, category2image, image2category)
+
+                image2category.pop(distractor1)
 
 
-            shutil.copyfile(target_image, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
-            target_image_path = os.path.join("games", "multimodal_referencegame", "resources", "clevr_images", f"{str(image_counter)}.jpg")
+                distractor2 = self.select_distractor_for_clevr(target_categories, category2image, image2category)
+                image2category.pop(distractor2)
+
+
+                shutil.copyfile(target_image, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "clevr_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            # remove the target image from the list, select another image from the same category
-            target_category_images.remove(target_image)
-            distractor1 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor1, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
-            distractor1_path = os.path.join("games", "multimodal_referencegame", "resources", "clevr_images", f"{str(image_counter)}.jpg")
+            if sample_images:
+                # remove the target image from the list, select another image from the same category
+                target_category_images.remove(target_image)
+                distractor1 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor1, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "clevr_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            # remove the distractor1 image from the list, select another image from the same category
-            target_category_images.remove(distractor1)
-            distractor2 = self.select_random_item(target_category_images)
-            shutil.copyfile(distractor2, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
-            distractor2_path = os.path.join("games", "multimodal_referencegame", "resources", "clevr_images", f"{str(image_counter)}.jpg")
+            if sample_images:
+                # remove the distractor1 image from the list, select another image from the same category
+                target_category_images.remove(distractor1)
+                distractor2 = self.select_random_item(target_category_images)
+                shutil.copyfile(distractor2, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("games", "multimodal_referencegame", "resources", "clevr_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            for i in [1, 2, 3]:
-
-                player_a_prompt_header = self.load_template(
-                    os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-                game_instance = self.add_game_instance(experiment, game_counter)
-
-                player_1_first_image = ""
-                player_1_second_image = ""
-                player_1_third_image = ""
-                player_2_first_image = ""
-                player_2_second_image = ""
-                player_2_third_image = ""
-
-                if i == 1:
-                    player_1_first_image = target_image_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = distractor2_path
-
-                    player_2_first_image = distractor1_path
-                    player_2_second_image = target_image_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["second", "2", "2nd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "the target").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "a distractor")
-
-                elif i == 2:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = target_image_path
-
-                    player_2_first_image = target_image_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["first", "1", "1st"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "the target")
-
-                elif i == 3:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = target_image_path
-                    player_1_third_image = distractor1_path
-
-                    player_2_first_image = distractor2_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = target_image_path
-
-                    player_2_target_name = ["third", "3rd", "3"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "the target").replace("THIRD_IMAGE", "a distractor")
-
-                game_instance["player_1_prompt_header"] = player_a_prompt_header
-                game_instance['player_1_first_image'] = player_1_first_image
-                game_instance['player_1_second_image'] = player_1_second_image
-                game_instance['player_1_third_image'] = player_1_third_image
-
-                game_instance["player_2_prompt_header"] = player_b_prompt_header
-                game_instance['player_2_first_image'] = player_2_first_image
-                game_instance['player_2_second_image'] = player_2_second_image
-                game_instance['player_2_third_image'] = player_2_third_image
-                game_instance['target_image_name'] = player_2_target_name
-                game_instance['player_1_response_pattern'] = '^expression:\s(?P<content>.+)\n*(?P<remainder>.*)'
-                # named groups:
-                # 'content' captures only the generated referring expression
-                # 'remainder' should be empty (if models followed the instructions)
-                game_instance[
-                    'player_2_response_pattern'] = '^answer:\s(?P<content>first|second|third|1|2|3|1st|2nd|3rd)\n*(?P<remainder>.*)'
-                # 'content' can directly be compared to gold answer
-                # 'remainder' should be empty (if models followed the instructions)
-
-                # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
-                game_instance["player_1_response_tag"] = "expression:"
-                game_instance["player_2_response_tag"] = "answer:"
-
-                game_counter += 1
-
-                if game_counter >= MAX_NUMBER_INSTANCES:
-                    break
+            game_counter = self.add_shuffled_instances(general_instance=general_instance, image_paths=image_paths, experiment=experiment, game_counter=game_counter)
 
             if game_counter >= MAX_NUMBER_INSTANCES:
                 break
 
-    def generate_clevr_static_target_instances(self):
-        player_a_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-        player_b_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_b_prompt_images.template"))
-
+    def generate_clevr_static_target_instances(self, general_instance=None, language=None, sample_images=False):
         game_counter = 0
         image_counter = 1
         image_directory = os.path.join("resources", "clevr_images")
         
         # find out if there are any images in the image_directory and if there is any, get the last image number by looking at the suffix before the .jpg file extension
         if os.path.exists(image_directory):
-            files = os.listdir(image_directory)
-            if len(files) > 0:
-                image_counter = len(files) + 1
+            # files = os.listdir(image_directory)
+            # if len(files) > 0:
+            #     image_counter = len(files) + 1
+            # image count used for dynamic instances:
+            # next multiple of 3, starting from MAX_NUMBER_INSTANCES
+            if MAX_NUMBER_INSTANCES % 3 == 0:
+                image_counter = MAX_NUMBER_INSTANCES
+            else:
+                image_counter = MAX_NUMBER_INSTANCES + (3 - (MAX_NUMBER_INSTANCES % 3))
+            # + 2, since the original sampling process skipped one image
+            image_counter += 2
 
         category2image, image2category = self.get_clevr_dataset()
 
         experiment = self.add_experiment('CLEVR_static_target_images')
 
-        target_image = ''
+        target_image_path = ''
         target_categories = []
 
         for target_category in category2image:
 
-            if target_image == '':
-                target_category_images = category2image[target_category]
-                target_image = self.select_random_item(target_category_images)
-                target_categories = image2category[target_image]
-                image2category.pop(target_image)
+            if target_image_path == '':
+                if sample_images:
+                    target_category_images = category2image[target_category]
+                    target_image = self.select_random_item(target_category_images)
+                    target_categories = image2category[target_image]
+                    image2category.pop(target_image)
 
-                shutil.copyfile(target_image, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
+                    shutil.copyfile(target_image, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
                 target_image_path = os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg")
                 image_counter += 1
+            
+            image_paths = [target_image_path]
 
-            distractor1 = self.select_distractor_for_clevr(target_categories, category2image, image2category)
-            image2category.pop(distractor1)
+            if sample_images:
+                distractor1 = self.select_distractor_for_clevr(target_categories, category2image, image2category)
+                image2category.pop(distractor1)
 
-            distractor2 = self.select_distractor_for_clevr(target_categories, category2image, image2category)
-            image2category.pop(distractor2)
+                distractor2 = self.select_distractor_for_clevr(target_categories, category2image, image2category)
+                image2category.pop(distractor2)
 
-            shutil.copyfile(distractor1, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
-            distractor1_path = os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg")
+                shutil.copyfile(distractor1, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            shutil.copyfile(distractor2, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
-            distractor2_path = os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg")
+            if sample_images:
+                shutil.copyfile(distractor2, os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
+            image_paths.append(os.path.join("resources", "clevr_images", f"{str(image_counter)}.jpg"))
             image_counter += 1
 
-            for i in [1, 2, 3]:
-
-                player_a_prompt_header = self.load_template(
-                    os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-                game_instance = self.add_game_instance(experiment, game_counter)
-
-                player_1_first_image = ""
-                player_1_second_image = ""
-                player_1_third_image = ""
-                player_2_first_image = ""
-                player_2_second_image = ""
-                player_2_third_image = ""
-
-                if i == 1:
-                    player_1_first_image = target_image_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = distractor2_path
-
-                    player_2_first_image = distractor1_path
-                    player_2_second_image = target_image_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["second", "2", "2nd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "the target").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "a distractor")
-
-                elif i == 2:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = target_image_path
-
-                    player_2_first_image = target_image_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["first", "1", "1st"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "the target")
-
-                elif i == 3:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = target_image_path
-                    player_1_third_image = distractor1_path
-
-                    player_2_first_image = distractor2_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = target_image_path
-
-                    player_2_target_name = ["third", "3rd", "3"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "the target").replace("THIRD_IMAGE", "a distractor")
-
-                game_instance["player_1_prompt_header"] = player_a_prompt_header
-                game_instance['player_1_first_image'] = player_1_first_image
-                game_instance['player_1_second_image'] = player_1_second_image
-                game_instance['player_1_third_image'] = player_1_third_image
-
-                game_instance["player_2_prompt_header"] = player_b_prompt_header
-                game_instance['player_2_first_image'] = player_2_first_image
-                game_instance['player_2_second_image'] = player_2_second_image
-                game_instance['player_2_third_image'] = player_2_third_image
-                game_instance['target_image_name'] = player_2_target_name
-                game_instance['player_1_response_pattern'] = '^expression:\s(?P<content>.+)\n*(?P<remainder>.*)'
-                # named groups:
-                # 'content' captures only the generated referring expression
-                # 'remainder' should be empty (if models followed the instructions)
-                game_instance[
-                    'player_2_response_pattern'] = '^answer:\s(?P<content>first|second|third|1|2|3|1st|2nd|3rd)\n*(?P<remainder>.*)'
-                # 'content' can directly be compared to gold answer
-                # 'remainder' should be empty (if models followed the instructions)
-
-                # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
-                game_instance["player_1_response_tag"] = "expression:"
-                game_instance["player_2_response_tag"] = "answer:"
-
-                game_counter += 1
-
-                if game_counter >= MAX_NUMBER_INSTANCES:
-                    break
+            game_counter = self.add_shuffled_instances(general_instance=general_instance, image_paths=image_paths, experiment=experiment, game_counter=game_counter)
 
             if game_counter >= MAX_NUMBER_INSTANCES:
                 break
 
-    def generate_pentomino_instances(self):
-        player_a_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-        player_b_prompt_header = self.load_template(os.path.join("resources", "initial_prompts", "player_b_prompt_images.template"))
-
+    def generate_pentomino_instances(self, general_instance=None, language=None):
         game_counter = 0
-        image_counter = 1
         image_directory = os.path.join("resources", "pentomino_images")
 
         image_files = []
@@ -988,107 +579,28 @@ class ReferenceGameInstanceGenerator(GameInstanceGenerator):
         # loop over image image_files and take the first 7 sets of images: 1st image is the target image, the next 2 are distractors, and create 3 sets of tuples  where one is the target image and the other two are the distractors
         for i in range(1, len(image_files)+1, 7):
 
-            target_image_path = os.path.join(image_directory, f"{i}.jpg")
+            image_paths = [os.path.join(image_directory, f"{i}.jpg")]
 
-            k = 1
             for j in range(i + 1, i + 7, 2):
-                distractor1_path = os.path.join(image_directory, f"{j}.jpg")
-                distractor2_path = os.path.join(image_directory, f"{j+1}.jpg")
-
-                player_a_prompt_header = self.load_template(
-                    os.path.join("resources", "initial_prompts", "player_a_prompt_images.template"))
-                game_instance = self.add_game_instance(experiment, game_counter)
-
-                player_1_first_image = ""
-                player_1_second_image = ""
-                player_1_third_image = ""
-                player_2_first_image = ""
-                player_2_second_image = ""
-                player_2_third_image = ""
-
-                if k == 1:
-                    player_1_first_image = target_image_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = distractor2_path
-
-                    player_2_first_image = distractor1_path
-                    player_2_second_image = target_image_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["second", "2", "2nd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "the target").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "a distractor")
-
-                elif k == 2:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = distractor1_path
-                    player_1_third_image = target_image_path
-
-                    player_2_first_image = target_image_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = distractor2_path
-
-                    player_2_target_name = ["first", "1", "1st"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "a distractor").replace("THIRD_IMAGE", "the target")
-
-                elif k == 3:
-                    player_1_first_image = distractor2_path
-                    player_1_second_image = target_image_path
-                    player_1_third_image = distractor1_path
-
-                    player_2_first_image = distractor2_path
-                    player_2_second_image = distractor1_path
-                    player_2_third_image = target_image_path
-
-                    player_2_target_name = ["third", "3", "3rd"]
-
-                    player_a_prompt_header = player_a_prompt_header.replace("FIRST_IMAGE", "a distractor").replace(
-                        "SECOND_IMAGE", "the target").replace("THIRD_IMAGE", "a distractor")
-
-                k+=1
-                game_instance["player_1_prompt_header"] = player_a_prompt_header
-                game_instance['player_1_first_image'] = player_1_first_image
-                game_instance['player_1_second_image'] = player_1_second_image
-                game_instance['player_1_third_image'] = player_1_third_image
-
-                game_instance["player_2_prompt_header"] = player_b_prompt_header
-                game_instance['player_2_first_image'] = player_2_first_image
-                game_instance['player_2_second_image'] = player_2_second_image
-                game_instance['player_2_third_image'] = player_2_third_image
-                game_instance['target_image_name'] = player_2_target_name
-                game_instance['player_1_response_pattern'] = '^expression:\s(?P<content>.+)\n*(?P<remainder>.*)'
-                # named groups:
-                # 'content' captures only the generated referring expression
-                # 'remainder' should be empty (if models followed the instructions)
-                game_instance[
-                    'player_2_response_pattern'] = '^answer:\s(?P<content>first|second|third|1|2|3|1st|2nd|3rd)\n*(?P<remainder>.*)'
-                # 'content' can directly be compared to gold answer
-                # 'remainder' should be empty (if models followed the instructions)
-
-                # the following two fields are no longer required, but kept for backwards compatibility with previous instance versions
-                game_instance["player_1_response_tag"] = "expression:"
-                game_instance["player_2_response_tag"] = "answer:"
-
-                game_counter += 1
-
-                if game_counter >= MAX_NUMBER_INSTANCES:
-                    break
+                image_paths.append(os.path.join(image_directory, f"{j}.jpg"))
+                image_paths.append(os.path.join(image_directory, f"{j+1}.jpg"))
+                
+                game_counter = self.add_shuffled_instances(general_instance=general_instance, image_paths=image_paths, experiment=experiment, game_counter=game_counter)
 
             if game_counter >= MAX_NUMBER_INSTANCES:
                 break
 
     def on_generate(self):
-        self.generate_grid_instances()
-        self.generate_scene_instances()
-        self.generate_docci_instances()
-        self.generate_clevr_instances()
-        self.generate_clevr_static_target_instances()
-        self.generate_docci_static_target_instances()
-        self.generate_scene_static_target_instances()
-        self.generate_pentomino_instances()
+        for language in LANGUAGES:
+            general_instance = self.general_instance(language)
+            self.generate_grid_instances(general_instance, language)
+            self.generate_scene_instances(general_instance, language)
+            self.generate_docci_instances(general_instance, language)
+            self.generate_clevr_instances(general_instance, language)
+            self.generate_clevr_static_target_instances(general_instance, language)
+            self.generate_docci_static_target_instances(general_instance, language)
+            self.generate_scene_static_target_instances(general_instance, language)
+            self.generate_pentomino_instances(general_instance, language)
 
 if __name__ == '__main__':
     ReferenceGameInstanceGenerator().generate(filename="instances.json")
