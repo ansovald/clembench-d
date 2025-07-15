@@ -123,20 +123,6 @@ class TextArenaGameMaster(GameMaster):
         player.game_recorder = self.game_recorder  # player should record to the same interaction log
         player.name = f"Player {player_id}"        # Mirrors TextArena's player ID
     
-    def context_from_observation(self, content: str, **extras):
-        """
-        Set the context for the specified Player. The player will be prompted with the context on its next turn.
-
-        The context always has a 'role' and 'content' entry where the 'role' is always set to 'user'.
-        Args:
-            player: The player to set the context for.
-            content: The text content to be added to the context.
-            extras: Additional content to be merged into the context e.g. information about images. 
-                    NOTE: TA does not currently support images, so this is just a placeholder.
-        """
-        message = {"role": "user", "content": content}
-        return {**extras, **message}
-    
     def get_current_player(self) -> Optional[Player]:
         # Playpen needs this
         return self.players_by_id[self.env.state.current_player_id]
