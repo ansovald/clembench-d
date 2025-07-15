@@ -1,0 +1,24 @@
+[
+    {
+        "game_name": "ta_taboo",
+        "ta_env": "textarena.envs.Taboo.env:TabooEnv",
+        "ta_name": "Taboo-v0",
+        "instances": "instances_taboo",
+        "main_game": "textarena",
+        "players": 2,
+        "image": null,
+        "languages": [
+            "en"
+        ],
+        "player_specs": [
+            {
+                "role": "Clue Giver",
+                "custom_response": ["Something green"]
+            },
+            {
+                "role": "Guesser",
+                "custom_response": ["[cactus]"]
+            }
+        ]
+    }
+]
