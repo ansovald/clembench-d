@@ -9,7 +9,7 @@ from textarena.envs.registration import ENV_REGISTRY
 # Seed for reproducibility, to be passed to the TextArena environments
 SEED = 525119131
 
-N_GAMES = 2  # Number of games to generate for each game type
+# N_GAMES = 1  # Number of games to generate for each game type
 
 class TextArenaInstanceGenerator(GameInstanceGenerator):
     """
@@ -24,20 +24,23 @@ class TextArenaInstanceGenerator(GameInstanceGenerator):
     def on_generate(self, seed: int, **kwargs):
         # load all games from the ENV_REGISTRY that use the specified environment
         ta_name = kwargs.get("ta_name")
-        ta_env = kwargs.get("ta_env")
-        player_specs = kwargs.get("player_specs")
+        entry_point = kwargs.get("entry_point")
         for ta_game in ENV_REGISTRY:
-            if ta_game.startswith(ta_name) and ENV_REGISTRY[ta_game].entry_point == ta_env:
-                experiment = self.add_experiment(ta_game)
-                for i in range(N_GAMES):
-                    game_instance = self.add_game_instance(experiment, game_id=i)
-                    game_instance["ta_env"] = ta_env
-                    game_instance["seed"] = seed + i # Ensure different seeds for each game instance
-                    game_instance["player_specs"] = player_specs
+            registry_entry = ENV_REGISTRY[ta_game]
+            if ta_game.startswith(ta_name) and registry_entry.entry_point == entry_point:
+                # We take the "-raw" version of the environment, since it does not have any wrappers applied.
+                if ta_game.endswith("-raw"):
+                    experiment = self.add_experiment(ta_game[:-4])
+                    for i in range(kwargs.get("n_instances")):
+                        game_instance = self.add_game_instance(experiment, game_id=i)
+                        game_instance["entry_point"] = entry_point
+                        game_instance["env_specs"] = ENV_REGISTRY[ta_game].kwargs
+                        game_instance["seed"] = seed + i # Ensure different seeds for each game instance
+                        game_instance["player_specs"] = kwargs.get("player_specs")
 
 if __name__ == "__main__":
     # load clemgame.json to get the games
     clemgame_registry = json.load(open(os.path.join(os.path.dirname(__file__), "clemgame.json"), "r"))
 
     for game in clemgame_registry:
-        TextArenaInstanceGenerator().generate(ta_name=game["ta_name"], ta_env=game["ta_env"], filename=game["instances"] + '.json', player_specs=game["player_specs"], seed=SEED)
+        TextArenaInstanceGenerator().generate(**game, filename=game["instances"] + '.json', seed=SEED)

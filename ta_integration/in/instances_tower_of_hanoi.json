@@ -1,0 +1,34 @@
+{
+  "experiments": [
+    {
+      "name": "TowerOfHanoi-v0",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
+          "env_specs": {
+            "num_disks": 3,
+            "max_turns": 14
+          },
+          "seed": 525119131,
+          "player_specs": [
+            {
+              "role": "Solver",
+              "custom_response": [
+                "[A B]",
+                "[A C]",
+                "[B C]",
+                "[B A]",
+                "[C A]",
+                "[C B]"
+              ]
+            }
+          ],
+          "wrappers": [
+            "ClemObservationWrapper"
+          ]
+        }
+      ]
+    }
+  ]
+}
