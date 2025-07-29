@@ -60,9 +60,6 @@ class ClemObservationWrapper(ObservationWrapper):
         """
         Takes the observations the player hasn't seen yet, and prepares them as content in a context dict.
         """
-        # logger.info(f"Converting observations for player {player_id} to context.")
-        # logger.info(f"Current temp observations: {self.temp_observations[player_id]}")
-        # logger.info(f"All observations: {self.env.state.observations}")
         content = ""
         if self.game_master.players_by_id[player_id]._is_initial_call:
             content += STANDARD_GAME_PROMPT + "\n\n"
@@ -70,45 +67,32 @@ class ClemObservationWrapper(ObservationWrapper):
         if player_id in self.temp_observations:
             for sender_id, message, observation_type in self.temp_observations[player_id]:
                 if sender_id != player_id:
-                    # logger.info(f"Adding observation from sender {sender_id}:\n{message}\n(type: {observation_type})")
                     sender_name = self.env.state.role_mapping.get(sender_id, f"Player {sender_id}")
                     content += f"\n[{sender_name}] {message}"
-                # else:
-                #     logger.info(f"Skipping observation from self ({sender_id}) for player {player_id}: {message}")
-        # logger.info(f"Final content for player {player_id}: {content}")
         self.temp_observations[player_id] = []
-        # logger.info(f"Cleared temp observations for player {player_id}.")
-
         return {'role': 'user', 'content': content}
 
     def observation(self, player_id: int, observation: Optional[Observations]):
+        """
+        env.get_observation() eventually calls this method, which calls _convert_obs_to_context(player_id).
+        Thus, it returns a context dict for the player.
+        """
         # Every time a player receives an observation, reset the request violation flag.
         # If it is true, turn counter will not be incremented in play()
         self.game_master.request_violation = False
-        logger.info(f"Resetting request violation flag.")
-        # logger.info(f"\n\nClemObservationWrapper received observation for player {player_id}: {observation}")
         if observation is None:
-            logger.info(f"ClemObservationWrapper received None observation for player {player_id}.")
             return self._convert_obs_to_context(player_id=player_id)
 
-        # Extend the full observations with the current observations without duplicates
+        # Extend the temp observations with the current observations without duplicates
         if player_id not in self.temp_observations:
             self.temp_observations[player_id] = []
 
         # Append new observations in sequence
         if type(observation) is str:
-            # logger.info(f"\t\tObservation for player {player_id} is a string")
             self.temp_observations[player_id].append(tuple([-1, observation, ObservationType.PROMPT]))
         else:
-            # logger.info(f"\t\tObservation for player {player_id} is of type {type(observation)}")
-            print(observation[-1])
-
-            # TODO: Something is off with WordChain. 
-            # Players are mixed up in the messages, and penalized for words from the other player, or something like that.
             if "attempted an invalid move" in observation[-1][1]:
-                logger.info(f"Player {player_id} attempted an invalid move, counting as a request violation.")
                 self.game_master.request_violation = True
-                logger.info(f"Setting request violation flag to True")
                 self.game_master.game_recorder.count_request_violation()
             self.temp_observations[player_id].extend(observation)
 
@@ -125,13 +109,12 @@ class TextArenaGameMaster(GameMaster):
         super().__init__(game_spec=game_spec, experiment=experiment, player_models=player_models)
         self.ta_env_id = experiment['name']
         self.players_by_id = { -1: "GM" }     # This corresponds to the player IDs used by TextArena
-        self.context_for_player: Dict[str, Dict] = dict()  # context entries look like {"role": "user", "content": ...}
         self.game_recorder = NoopGameRecorder()
         self.request_violation = False
-        self.last_player = None # Needed to detect possible request violation in last turn
+        self.last_player = None # Needed to detect possible request violation in last turn in _on_after_game()
 
     def setup(self, **kwargs):
-        random.seed(kwargs['seed'])
+        random.seed(kwargs['seed']) # This should be redundant, since the environment is reset with the seed, but setting it twice does not hurt
         np.random.seed(kwargs['seed'])
         self.env = ta.make(env_id=self.ta_env_id + "-raw")
         
@@ -140,9 +123,7 @@ class TextArenaGameMaster(GameMaster):
         # to make sampling from the word list deterministic.
         if 'override_variables' in kwargs:
             self._apply_variable_overrides(kwargs['override_variables'])
-        # TODO: check if this might lead to problems, since some games have more than one default wrapper
-        #       I am currently using the `-raw` version of the environment, which does not have any wrappers applied.
-        #       Instead, just use ClemObservationWrapper
+        
         self.env = ClemObservationWrapper(env=self.env, game_master=self)
         self.env.reset(num_players=len(self.player_models), seed=kwargs['seed'])     # reset sets the initial prompts for each player
         for player_id, (player_spec, player_model) in enumerate(zip(self.game_spec.player_specs, self.player_models)):
@@ -159,9 +140,7 @@ class TextArenaGameMaster(GameMaster):
         """
         Apply variable overrides from the game specification to the environment.
         The override_variables dict contains variable paths as keys and expressions as values.
-        """
-        print(f"Applying variable overrides: {override_variables}")
-        
+        """        
         for variable_path, expression in override_variables.items():
             try:
                 logger.info(f"Applying override for {variable_path} with expression: {expression}")
@@ -214,19 +193,15 @@ class TextArenaGameMaster(GameMaster):
         played_in_turn = set()  # Keep track of players who have played in the current turn
         player_id, context = self.env.get_observation()
         while not done:
-            logger.info(f"\n\nStarting new turn. Current player ID: {self.env.state.current_player_id}")
             played_in_turn.add(player_id)
             self.last_player = player_id  # Update the last player who played
-            logger.info(f"In play loop.\nCurrent player ID: {player_id}\nContext: {context}")
             response = self.players_by_id[player_id](context)
-            logger.info(f"Player {player_id} responded with: {response}")
             done, info = self.step(response)
             if info:
                 logger.info(f"Game info: {info}")
             if not done:
                 player_id, context = self.env.get_observation()
                 if len(played_in_turn) == len(self.players_by_id) - 1 and not self.request_violation:  # All players have played in this turn, last move was valid
-                    logger.info(f"All players have played in this turn, last move was valid: {played_in_turn}, {self.request_violation}")
                     played_in_turn.clear()  # Clear the set for the next turn
                     self.game_recorder.log_next_round()
             else:
@@ -242,7 +217,6 @@ class TextArenaGameMaster(GameMaster):
               The ToH env does submit a 'reward' when calling `set_invalid_move`, 
               but this is (currently?) not used in SinglePlayerState.
         """
-        logger.info("In _on_after_game")
         rewards = self.env.close()
         self.log_key("rewards", rewards)
         # Rewards appears to be a tuple:

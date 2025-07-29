@@ -1,11 +1,10 @@
 [
     {
         "game_name": "ta_tower_of_hanoi",
-        "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
-        "n_instances": 1,
+        "main_game": "ta_tower_of_hanoi",
         "ta_name": "TowerOfHanoi-v0",
+        "n_instances": 1,
         "instances": "instances_tower_of_hanoi",
-        "main_game": "textarena",
         "players": 1,
         "image": null,
         "languages": [
@@ -20,11 +19,10 @@
     },
     {
         "game_name": "ta_word_chains",
-        "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
-        "n_instances": 10,
+        "main_game": "ta_word_chains",
         "ta_name": "WordChains-v0",
+        "n_instances": 10,
         "instances": "instances_word_chains",
-        "main_game": "textarena",
         "players": 2,
         "image": null,
         "languages": [
@@ -46,11 +44,10 @@
     },
     {
         "game_name": "ta_minesweeper",
-        "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
-        "n_instances": 2,
+        "main_game": "ta_minesweeper",
         "ta_name": "Minesweeper-v0",
+        "n_instances": 2,
         "instances": "instances_minesweeper",
-        "main_game": "textarena",
         "players": 1,
         "image": null,
         "languages": [
@@ -58,8 +55,8 @@
         ],
         "player_specs": [
             {
-                "role": "Solver",
-                "custom_response": ["[reveal 3 2]", "[flag 5 6]"]
+                "role": "Minesweeper",
+                "custom_response": ["[3 2]", "[5 6]"]
             }
         ]
     }

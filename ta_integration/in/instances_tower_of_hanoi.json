@@ -10,20 +10,7 @@
             "num_disks": 3,
             "max_turns": 14
           },
-          "seed": 525119131,
-          "player_specs": [
-            {
-              "role": "Solver",
-              "custom_response": [
-                "[A B]",
-                "[A C]",
-                "[B C]",
-                "[B A]",
-                "[C A]",
-                "[C B]"
-              ]
-            }
-          ]
+          "seed": 525119131
         }
       ]
     },
@@ -37,20 +24,7 @@
             "num_disks": 4,
             "max_turns": 30
           },
-          "seed": 525119131,
-          "player_specs": [
-            {
-              "role": "Solver",
-              "custom_response": [
-                "[A B]",
-                "[A C]",
-                "[B C]",
-                "[B A]",
-                "[C A]",
-                "[C B]"
-              ]
-            }
-          ]
+          "seed": 525119131
         }
       ]
     },
@@ -64,20 +38,7 @@
             "num_disks": 5,
             "max_turns": 62
           },
-          "seed": 525119131,
-          "player_specs": [
-            {
-              "role": "Solver",
-              "custom_response": [
-                "[A B]",
-                "[A C]",
-                "[B C]",
-                "[B A]",
-                "[C A]",
-                "[C B]"
-              ]
-            }
-          ]
+          "seed": 525119131
         }
       ]
     },
@@ -91,20 +52,7 @@
             "num_disks": 6,
             "max_turns": 126
           },
-          "seed": 525119131,
-          "player_specs": [
-            {
-              "role": "Solver",
-              "custom_response": [
-                "[A B]",
-                "[A C]",
-                "[B C]",
-                "[B A]",
-                "[C A]",
-                "[C B]"
-              ]
-            }
-          ]
+          "seed": 525119131
         }
       ]
     },
@@ -118,20 +66,7 @@
             "num_disks": 7,
             "max_turns": 254
           },
-          "seed": 525119131,
-          "player_specs": [
-            {
-              "role": "Solver",
-              "custom_response": [
-                "[A B]",
-                "[A C]",
-                "[B C]",
-                "[B A]",
-                "[C A]",
-                "[C B]"
-              ]
-            }
-          ]
+          "seed": 525119131
         }
       ]
     }

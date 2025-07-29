@@ -24,19 +24,17 @@ class TextArenaInstanceGenerator(GameInstanceGenerator):
     def on_generate(self, seed: int, **kwargs):
         # load all games from the ENV_REGISTRY that use the specified environment
         ta_name = kwargs.get("ta_name")
-        entry_point = kwargs.get("entry_point")
         for ta_game in ENV_REGISTRY:
-            registry_entry = ENV_REGISTRY[ta_game]
-            if ta_game.startswith(ta_name) and registry_entry.entry_point == entry_point:
+            if ta_game.startswith(ta_name):
                 # We take the "-raw" version of the environment, since it does not have any wrappers applied.
                 if ta_game.endswith("-raw"):
                     experiment = self.add_experiment(ta_game[:-4])
                     for i in range(kwargs.get("n_instances")):
                         game_instance = self.add_game_instance(experiment, game_id=i)
-                        game_instance["entry_point"] = entry_point
+                        game_instance["entry_point"] = ENV_REGISTRY[ta_game].entry_point
                         game_instance["env_specs"] = ENV_REGISTRY[ta_game].kwargs
                         game_instance["seed"] = seed + i # Ensure different seeds for each game instance
-                        game_instance["player_specs"] = kwargs.get("player_specs")
+                        # game_instance["player_specs"] = kwargs.get("player_specs")
                         if "override_variables" in kwargs:
                             game_instance["override_variables"] = kwargs["override_variables"]
 
