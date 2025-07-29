@@ -17,5 +17,50 @@
                 "custom_response": ["[A B]", "[A C]", "[B C]", "[B A]", "[C A]", "[C B]"]
             }
         ]
+    },
+    {
+        "game_name": "ta_word_chains",
+        "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
+        "n_instances": 10,
+        "ta_name": "WordChains-v0",
+        "instances": "instances_word_chains",
+        "main_game": "textarena",
+        "players": 2,
+        "image": null,
+        "languages": [
+            "en"
+        ],
+        "player_specs": [
+            {
+                "role": "Player 0",
+                "custom_response": ["lighter", "elephant", "tiger", "rabbit"]
+            },
+            {
+                "role": "Player 1",
+                "custom_response": ["elephant", "tiger", "rabbit", "banana"]
+            }
+        ],
+        "override_variables": {
+            "env.word_list": "lambda x: sorted(x)"
+        }
+    },
+    {
+        "game_name": "ta_minesweeper",
+        "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
+        "n_instances": 2,
+        "ta_name": "Minesweeper-v0",
+        "instances": "instances_minesweeper",
+        "main_game": "textarena",
+        "players": 1,
+        "image": null,
+        "languages": [
+            "en"
+        ],
+        "player_specs": [
+            {
+                "role": "Solver",
+                "custom_response": ["[reveal 3 2]", "[flag 5 6]"]
+            }
+        ]
     }
 ]

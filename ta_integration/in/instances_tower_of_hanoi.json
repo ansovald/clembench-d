@@ -23,9 +23,114 @@
                 "[C B]"
               ]
             }
-          ],
-          "wrappers": [
-            "ClemObservationWrapper"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TowerOfHanoi-v0-medium",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
+          "env_specs": {
+            "num_disks": 4,
+            "max_turns": 30
+          },
+          "seed": 525119131,
+          "player_specs": [
+            {
+              "role": "Solver",
+              "custom_response": [
+                "[A B]",
+                "[A C]",
+                "[B C]",
+                "[B A]",
+                "[C A]",
+                "[C B]"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TowerOfHanoi-v0-hard",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
+          "env_specs": {
+            "num_disks": 5,
+            "max_turns": 62
+          },
+          "seed": 525119131,
+          "player_specs": [
+            {
+              "role": "Solver",
+              "custom_response": [
+                "[A B]",
+                "[A C]",
+                "[B C]",
+                "[B A]",
+                "[C A]",
+                "[C B]"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TowerOfHanoi-v0-hardcore",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
+          "env_specs": {
+            "num_disks": 6,
+            "max_turns": 126
+          },
+          "seed": 525119131,
+          "player_specs": [
+            {
+              "role": "Solver",
+              "custom_response": [
+                "[A B]",
+                "[A C]",
+                "[B C]",
+                "[B A]",
+                "[C A]",
+                "[C B]"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TowerOfHanoi-v0-extreme",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
+          "env_specs": {
+            "num_disks": 7,
+            "max_turns": 254
+          },
+          "seed": 525119131,
+          "player_specs": [
+            {
+              "role": "Solver",
+              "custom_response": [
+                "[A B]",
+                "[A C]",
+                "[B C]",
+                "[B A]",
+                "[C A]",
+                "[C B]"
+              ]
+            }
           ]
         }
       ]
