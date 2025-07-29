@@ -73,3 +73,5 @@ For example, in WordChains, the start word is sampled from a word list generated
 ```
 
 After creating the TA environment, but before initiating the game state, any variable in this entry is replaced according to the lambda function given as value. For security reasons, this functionality should never be extended to execute any code other than replacing a specific variable!
+
+Despite this, some games will still behave somewhat indeterministic. For example, in Minesweeper, the placement of mines depends on the first move. Thus, a different first move will also lead to a different placement of mines.
