@@ -64,7 +64,7 @@ Each instance also contains a seed that is passed to the environment to ensure r
 
 Despite passing the seed, there might occur some non-deterministic behavior, which might be fixed by `override_variables` in `clemgame.json`.
 
-For example, in WordChains, the start word is sampled from a word list generated from a set, i.e., `list(set(word.lower() for word in nltk.corpus.words.words()))`. Sets are nondeterministic, and sampling accordingly doesn't work. As a workaround, `override_variables` is added to the `clemgame.json`:
+For example, in WordChains, the start word is sampled from a word list generated from a set, i.e., `list(set(word.lower() for word in nltk.corpus.words.words()))`. Sets are nondeterministic, and sampling accordingly doesn't work. As a workaround, `override_variables` is added to the `clemgame.json` to sort the list:
 
 ```
 "override_variables": {
@@ -75,3 +75,11 @@ For example, in WordChains, the start word is sampled from a word list generated
 After creating the TA environment, but before initiating the game state, any variable in this entry is replaced according to the lambda function given as value. For security reasons, this functionality should never be extended to execute any code other than replacing a specific variable!
 
 Despite this, some games will still behave somewhat indeterministic. For example, in Minesweeper, the placement of mines depends on the first move. Thus, a different first move will also lead to a different placement of mines.
+
+# Scoring
+
+Scoring is somewhat difficult and depends on the game. TextArena usually assigns different scores for each player, often just win/lose.
+
+## Word Chains
+For Word Chains, the player that provides the last valid word wins, the other one loses. However, to benchmark a model, it is better to base scoring on the length of the final word.
+We assume that a perfect game lasts 8 rounds, reaching a length 16 letters longer than the original word.

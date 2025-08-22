@@ -13,17 +13,6 @@
             "max_turns": 100
           },
           "seed": 525119131
-        },
-        {
-          "game_id": 1,
-          "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
-          "env_specs": {
-            "rows": 8,
-            "cols": 8,
-            "num_mines": 10,
-            "max_turns": 100
-          },
-          "seed": 525119132
         }
       ]
     },
@@ -40,17 +29,6 @@
             "max_turns": 100
           },
           "seed": 525119131
-        },
-        {
-          "game_id": 1,
-          "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
-          "env_specs": {
-            "rows": 5,
-            "cols": 5,
-            "num_mines": 5,
-            "max_turns": 100
-          },
-          "seed": 525119132
         }
       ]
     },
@@ -67,17 +45,6 @@
             "max_turns": 100
           },
           "seed": 525119131
-        },
-        {
-          "game_id": 1,
-          "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
-          "env_specs": {
-            "rows": 10,
-            "cols": 10,
-            "num_mines": 20,
-            "max_turns": 100
-          },
-          "seed": 525119132
         }
       ]
     },
@@ -94,17 +61,6 @@
             "max_turns": 100
           },
           "seed": 525119131
-        },
-        {
-          "game_id": 1,
-          "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
-          "env_specs": {
-            "rows": 12,
-            "cols": 12,
-            "num_mines": 30,
-            "max_turns": 100
-          },
-          "seed": 525119132
         }
       ]
     }

@@ -34,7 +34,6 @@ class TextArenaInstanceGenerator(GameInstanceGenerator):
                         game_instance["entry_point"] = ENV_REGISTRY[ta_game].entry_point
                         game_instance["env_specs"] = ENV_REGISTRY[ta_game].kwargs
                         game_instance["seed"] = seed + i # Ensure different seeds for each game instance
-                        # game_instance["player_specs"] = kwargs.get("player_specs")
                         if "override_variables" in kwargs:
                             game_instance["override_variables"] = kwargs["override_variables"]
 

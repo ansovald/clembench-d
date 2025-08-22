@@ -1,0 +1,6 @@
+{
+    "ta_word_chains": {
+        "master": "WordChainsGameMaster",
+        "scorer": "WordChainsScorer"
+    }
+}
