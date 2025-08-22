@@ -7,7 +7,7 @@ import random
 import numpy as np
 import textarena as ta
 from clemcore.backends import Model
-from clemcore.clemgame import Player, GameMaster, GameBenchmark, GameScorer
+from clemcore.clemgame import Player, GameMaster
 from clemcore.clemgame.registry import GameSpec
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, BENCH_SCORE
 import logging
@@ -47,6 +47,7 @@ class TextArenaGameMaster(GameMaster):
         super().__init__(game_spec=game_spec, experiment=experiment, player_models=player_models)
         self.game_name = game_spec['game_name']
         self.ta_env_id = experiment['name']
+        self.env = None  # This will be set in setup()
         self.players_by_id = { -1: "GM" }     # This corresponds to the player IDs used by TextArena
         self.logged_observation_count = {}
         self.request_violation = False  # Flag to indicate if a request violation occurred in last turn
@@ -57,13 +58,13 @@ class TextArenaGameMaster(GameMaster):
         self.checked_observations = {}
 
     def setup(self, **kwargs):
+        # Even though the env is initialized with a seed, we might need deterministic behavior for GM at some point
+        random.seed(kwargs['seed'])
+        np.random.seed(kwargs['seed'])
         self.started = True
         self.env = ta.make(env_id=self.ta_env_id + "-raw")        
         self.env = ClemObservationWrapper(env=self.env, game_master=self, num_players=len(self.player_models))
-        self._override_variables()
-        # This should be redundant, since the environment is reset with the seed, but it doesn't hurt
-        random.seed(kwargs['seed'])
-        np.random.seed(kwargs['seed'])
+        self._on_before_reset()
         self.env.reset(num_players=len(self.player_models), seed=kwargs['seed'])     # reset sets the initial prompts for each player
         for player_id, (player_spec, player_model) in enumerate(zip(self.game_spec.player_specs, self.player_models)):
             # make a custom Player subclass for each player_spec, named after the role
@@ -73,10 +74,23 @@ class TextArenaGameMaster(GameMaster):
             # Create an instance of the player class with the model
             player_instance = player_class(model=player_model, master=self, custom_response=custom_response, ta_player_id=player_id)
             self.add_player(player_instance, player_id=player_id)
+        self._on_before_game()
 
-    def _override_variables(self):
+    def _make_ta_env(self, env_id: str):
+        self.env = ta.make(env_id=env_id + "-raw")
+        self.env = ClemObservationWrapper(env=self.env, game_master=self, num_players=len(self.player_models))
+    
+    def _on_before_reset(self):
         """
-        Placeholder for functionalities in subclasses to override variables
+        This method is called before the environment is reset.
+        It can, e.g., be used to change variables in the env to make instances deterministic.
+        """
+        pass
+    
+    def _on_before_game(self):
+        """
+        This method is called before the game starts.
+        It can be used to set up the game state or perform any necessary initialization.
         """
         pass
 
@@ -118,7 +132,7 @@ class TextArenaGameMaster(GameMaster):
     
     def play(self):
         """
-        Main play loop method. This method is called to run the game for benchmarking.
+        Main play loop
         """
         done = False
         while not done:
@@ -133,6 +147,7 @@ class TextArenaGameMaster(GameMaster):
         self.done = done
         if info:
             logger.info(f"Game info passed by TextArena's env.step(): {info}")
+            self.log_to_self(type_='info', value=str(info))
         if not done:
             if self._start_next_round():
                 self._prepare_next_round()

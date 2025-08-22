@@ -21,7 +21,7 @@
     {
         "game_name": "ta_word_chains",
         "main_game": "ta_word_chains",
-        "master": "WordChainsGameMaster",
+        "master": "WordChainsMaster",
         "ta_name": "WordChains-v0",
         "n_instances": 10,
         "instances": "instances_word_chains",
@@ -46,7 +46,7 @@
         "main_game": "ta_minesweeper",
         "ta_name": "Minesweeper-v0",
         "master": "MinesweeperMaster",
-        "n_instances": 1,
+        "n_instances": 5,
         "instances": "instances_minesweeper",
         "players": 1,
         "image": null,

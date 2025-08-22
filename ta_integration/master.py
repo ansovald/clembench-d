@@ -1,14 +1,12 @@
-from regex import B
 from clemcore.clemgame import GameBenchmark, GameScorer
 from clemcore.clemgame.registry import GameSpec
-from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, BENCH_SCORE
+from clemcore.clemgame.metrics import BENCH_SCORE
 
 from ta_master import TextArenaGameMaster
 from submasters import *
 
 from typing import List, Dict, Tuple
 import logging
-import numpy as np
 
 # Local type aliases to avoid import issues with the framework. Copied from textarena/core.py
 Message = Tuple[int, str]

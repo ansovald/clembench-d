@@ -33,9 +33,10 @@ class WordChainsMaster(TextArenaGameMaster):
     def setup(self, **kwargs):
         super().setup(**kwargs)
         self.start_word = self.env.state.game_state['current_word']
+        logger.info(f"Starting word: {self.start_word}, seed: {kwargs.get('seed', 'not set')}")
 
-    def _override_variables(self):
-        # Sort word_list of self.env to ensure deterministic behavior
+    def _on_before_reset(self):
+        # Sort word_list of self.env to ensure deterministic sampling of start word
         self.env.word_list.sort()
     
     def _log_metrics(self, rewards: Dict):
@@ -66,7 +67,7 @@ class SinglePlayerMaster(TextArenaGameMaster):
     def _log_metrics(self, rewards):
         """
         Reward structures:
-        Tower of Hanoi ( virtually identical for Minesweeper etc.):
+        Tower of Hanoi (virtually identical for Minesweeper etc.):
         Can end three ways:
             1. Player wins by moving all disks to tower C:           +1
             2. Player loses by running out of turns: float within    [0,1] 
@@ -86,5 +87,25 @@ class SinglePlayerMaster(TextArenaGameMaster):
         else:
             # Neither success nor loss
             metrics[BENCH_SCORE] = num_reward * 100
-        
         self._log_metric_keys(metrics)
+
+class MinesweeperMaster(SinglePlayerMaster):
+    """
+    BENCH_SCORE is here the percentage of cells cleared by 
+    the player, excluding the ones revealed in the first turn.
+    """
+
+    def _on_before_game(self):
+        """
+        Mines are only distributed with the first move, so we first reveal the 
+        center cell to ensure the game is always initialized deterministically.
+        """
+        rows = self.env.rows
+        cols = self.env.cols
+        x = rows // 2
+        y = cols // 2
+        faux_response = f"[{x} {y}]"
+        player, context = self.observe()
+        player.perceive_context(context)
+        player.perceive_response(faux_response)
+        self.step(faux_response)
