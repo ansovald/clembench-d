@@ -1,10 +1,11 @@
 {
   "experiments": [
     {
-      "name": "ThreePlayerTicTacToe-v0",
+      "name": "default",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "ThreePlayerTicTacToe-v0-raw",
           "entry_point": "textarena.envs.ThreePlayerTicTacToe.env:ThreePlayerTicTacToeEnv",
           "env_specs": {},
           "seed": 525119131

@@ -1,64 +1,74 @@
 {
   "experiments": [
     {
-      "name": "WordChains-v0",
+      "name": "default",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119131
         },
         {
           "game_id": 1,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119132
         },
         {
           "game_id": 2,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119133
         },
         {
           "game_id": 3,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119134
         },
         {
           "game_id": 4,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119135
         },
         {
           "game_id": 5,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119136
         },
         {
           "game_id": 6,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119137
         },
         {
           "game_id": 7,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119138
         },
         {
           "game_id": 8,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119139
         },
         {
           "game_id": 9,
+          "env_id": "WordChains-v0-raw",
           "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
           "env_specs": {},
           "seed": 525119140

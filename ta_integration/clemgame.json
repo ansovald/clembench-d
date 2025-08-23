@@ -3,7 +3,7 @@
         "game_name": "ta_tower_of_hanoi",
         "master": "SinglePlayerMaster",
         "scorer": "SinglePlayerScorer",
-        "ta_name": "TowerOfHanoi-v0",
+        "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
         "n_instances": 1,
         "instances": "instances_tower_of_hanoi",
         "players": 1,
@@ -21,7 +21,8 @@
     {
         "game_name": "ta_word_chains",
         "master": "WordChainsMaster",
-        "ta_name": "WordChains-v0",
+        "scorer": "WordChainsScorer",
+        "entry_point": "textarena.envs.WordChains.env:WordChainsEnv",
         "n_instances": 10,
         "instances": "instances_word_chains",
         "players": 2,
@@ -42,7 +43,7 @@
     },
     {
         "game_name": "ta_minesweeper",
-        "ta_name": "Minesweeper-v0",
+        "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
         "master": "MinesweeperMaster",
         "scorer": "SinglePlayerScorer",
         "n_instances": 10,
@@ -61,7 +62,8 @@
     },
     {
         "game_name": "ta_three_player_tic_tac_toe",
-        "ta_name": "ThreePlayerTicTacToe-v0",
+        "scorer": "TextArenaScorer",
+        "entry_point": "textarena.envs.ThreePlayerTicTacToe.env:ThreePlayerTicTacToeEnv",
         "n_instances": 1,
         "instances": "instances_three_player_tic_tac_toe",
         "players": 3,
@@ -86,7 +88,7 @@
     },
     {
         "game_name": "ta_hangman",
-        "ta_name": "Hangman-v0",
+        "entry_point": "textarena.envs.Hangman.env:HangmanEnv",
         "master": "HangmanMaster",
         "scorer": "HangmanScorer",
         "n_instances": 10,
@@ -105,7 +107,15 @@
     },
     {
         "game_name": "ta_battleship",
-        "ta_name": "Battleship-v0",
+        "entry_point": "textarena.envs.Battleship.env:BattleshipEnv",
+        "experiments": {
+            "small": {
+                    "grid_size": 7
+            },
+            "standard": {
+                    "grid_size": 10
+            }
+        },
         "master": "BattleshipMaster",
         "scorer": "BattleshipScorer",
         "n_instances": 2,

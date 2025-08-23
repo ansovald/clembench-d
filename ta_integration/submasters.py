@@ -4,14 +4,11 @@ and functionalities to ensure deterministic behavior for specific games
 """
 
 from re import M
-from sys import stdout
+from unicodedata import numeric
 
-from py import log
 from regex import B
 from ta_master import TextArenaGameMaster
-from clemcore.clemgame import GameMaster, GameScorer, Player
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, BENCH_SCORE
-import numpy as np
 from typing import Dict
 import logging
 
@@ -20,14 +17,6 @@ logger.setLevel(logging.DEBUG)
 
 def reward_for_player(rewards: list[Dict], player_id: int=0) -> float:
     """
-    Reward structures:
-    Tower of Hanoi (largely identical with most single player games) can end in three ways:
-        1. Player wins by moving all disks to tower C:           +1
-        2. Player loses by running out of turns: float within    [0,1] 
-            (as calculated by `ta_env._get_percentage_completion()`, can be used as basic bench score)
-        3. Game ends because of invalid moves:                   -1, according to https://www.textarena.ai/environments/towerofhanoi
-            Currently, a game ended with invalid move still returns a float within [0,1]
-            (bypassed by `reward_for_player` function)
     Args:
         rewards: list of dicts as passed by ta_env.close()
         player_id: ID of the player for which to extract the reward
@@ -43,20 +32,21 @@ def reward_for_player(rewards: list[Dict], player_id: int=0) -> float:
     return numeric_reward
 
 class WordChainsMaster(TextArenaGameMaster):
-    def setup(self, **kwargs):
-        super().setup(**kwargs)
-        self.final_keys['start_word'] = self.env.state.game_state['current_word']
-        self.final_keys['start_word_length'] = len(self.final_keys['start_word'])
-
     def _on_before_reset(self):
         # Sort word_list of self.env to ensure deterministic sampling of start word
         self.env.word_list.sort()
     
-    def log_success(self, rewards: Dict = None, last_move_invalid: bool = False):
-        self.final_keys['end_word'] = self.env.state.game_state['current_word']
-        self.final_keys['end_word_length'] = len(self.final_keys['end_word'])
-        word_length_diff = self.final_keys['end_word_length'] - self.final_keys['start_word_length']
-        self.final_keys['word_length_diff'] = word_length_diff
+    def _on_before_game(self):
+        self.start_word = self.env.state.game_state['current_word']
+        self.log_key('start_word', self.start_word)
+        self.log_key('start_word_length', len(self.start_word))
+
+    def _on_after_game(self, **kwargs):
+        end_word = self.env.state.game_state['current_word']
+        self.log_key('end_word', end_word)
+        self.log_key('end_word_length', len(end_word))
+        word_length_diff = len(end_word) - len(self.start_word)
+        self.log_key('word_length_diff', word_length_diff)
         
         if word_length_diff == 0:
             self.log_key(METRIC_ABORTED, 1)
@@ -72,9 +62,10 @@ class SinglePlayerMaster(TextArenaGameMaster):
     Master class for single-player games in TextArena.
     It handles basic scoring and logging functionalities.
     """
-    def log_success(self, rewards, last_move_invalid: bool = False):
+    def _on_after_game(self, **kwargs):
+        rewards = kwargs.get('rewards', {})
         numeric_reward = reward_for_player(rewards, player_id=0)
-        self.final_keys['numeric_reward'] = numeric_reward
+        self.log_key('numeric_reward', numeric_reward)
         metrics = self.prepare_metrics(numeric_reward)
         self.log_keys(metrics)
 
@@ -96,7 +87,6 @@ class MinesweeperMaster(SinglePlayerMaster):
     BENCH_SCORE is here the percentage of cells cleared by 
     the player, excluding the ones revealed in the first turn.
     """
-
     def _on_before_game(self):
         """
         Mines are only distributed with the first move, so we first reveal the 
@@ -114,20 +104,21 @@ class MinesweeperMaster(SinglePlayerMaster):
 
 class HangmanMaster(SinglePlayerMaster):
     def _on_before_game(self):
-        self.final_keys['target_word'] = self.env.state.game_state['target_word']
-        self.final_keys['lives'] = self.env.state.game_state['tries_left']
+        self.log_key('target_word', self.env.state.game_state['target_word'])
+        self.log_key('lives', self.env.state.game_state['tries_left'])
 
-    def collect_ta_env_info(self):
-        self.final_keys['lives_left'] = self.env.state.game_state['tries_left']
-        self.final_keys['guessed_letters'] = self.env.state.game_state['guessed_letters']
+    def _on_after_game(self, **kwargs):
+        self.log_key('lives_left', self.env.state.game_state['tries_left'])
+        self.log_key('guessed_letters', self.env.state.game_state['guessed_letters'])
 
 class TwoPlayerMaster(TextArenaGameMaster):
     """
     Master class for competitive two-player games in TextArena.
     It handles basic scoring and logging functionalities.
     """
-    def log_success(self, rewards: Dict = None, last_move_invalid: bool = False):
-        self.final_keys['rewards'] = rewards
+    def _on_after_game(self, **kwargs):
+        rewards = kwargs.get('rewards', {})
+        last_move_invalid = rewards[1][self.last_player]['invalid_move']
 
         if last_move_invalid:
             self.log_key(METRIC_ABORTED, 1)
@@ -143,25 +134,27 @@ class BattleshipMaster(TwoPlayerMaster):
     Master class for the Battleship game in TextArena.
     It handles basic scoring and logging functionalities.
     """
-    def collect_ta_env_info(self):
+    def _on_after_game(self, **kwargs):
+        super()._on_after_game(**kwargs)
         boards = {}
         for player_id in self.env.state.game_state['board']:
             board = self.env.state.game_state['board'][player_id]
             board = "\n".join("".join(f"{cell}" for cell in board[i]) for i in range(len(board)))
             boards[player_id] = board
-        self.final_keys['cell_counts'] = { 
-                'total_cells': self.env.grid_size ** 2,
-                'total_ship_cells': sum(value for value in self.env.ships.values())
-            }
+        cell_counts = {
+            'total_cells': self.env.grid_size ** 2,
+            'total_ship_cells': sum(value for value in self.env.ships.values())
+        }
         for player_id in boards:
             # count the number of 'X' and 'O' on the board
             hits = boards[player_id].count('X')
             misses = boards[player_id].count('O')
             water = boards[player_id].count('~')
             remaining_ships = self.env.grid_size ** 2 - (hits + misses + water)
-            self.final_keys['cell_counts'][player_id] = {
+            cell_counts[player_id] = {
                 'hits': hits,
                 'misses': misses,
                 'water': water,
                 'remaining_ship_cells': remaining_ships
             }
+        self.log_key('cell_counts', cell_counts)

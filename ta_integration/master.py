@@ -19,15 +19,9 @@ class TextArenaBenchmark(GameBenchmark):
     def __init__(self, game_spec: GameSpec):
         logger.info(f"Initializing TextArenaBenchmark with game_spec: {game_spec}")
         super().__init__(game_spec)
-        if 'master' in game_spec:
-            self.master_class = globals()[game_spec['master']]
-        else:
-            self.master_class = TextArenaGameMaster
-        if 'scorer' in game_spec:
-            # Not used as of yet, but might be handy at some point
-            self.scorer_class = globals()[game_spec['scorer']]
-        else:
-            self.scorer_class = TextArenaScorer
+        assert 'master' in game_spec and 'scorer' in game_spec, "Both 'master' and 'scorer' must be specified in the game spec."
+        self.master_class = globals()[game_spec['master']]
+        self.scorer_class = globals()[game_spec['scorer']]
 
     def create_game_master(self, experiment, player_models):
         return self.master_class(self.game_spec, experiment, player_models)

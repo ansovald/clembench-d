@@ -43,8 +43,21 @@ class TextArenaScorer(GameScorer):
         super().__init__(game_name, experiment, game_instance)
         self.interaction_keys = [METRIC_SUCCESS, METRIC_ABORTED, METRIC_LOSE]
 
+    def get_auxiliaries(self, episode_interactions: Dict) -> Dict[str, float]:
+        """
+        Extracts auxiliary information from the episode interactions.
+        """
+        auxiliaries = {key: episode_interactions[key] for key in self.interaction_keys if key in episode_interactions}
+        return auxiliaries
+
     def compute_episode_scores(self, episode_interactions: Dict):
-        self.log_episode_score(BENCH_SCORE, episode_interactions[BENCH_SCORE])
+        auxiliaries = self.get_auxiliaries(episode_interactions)
+        bench_score = self.compute_bench_score(auxiliaries=auxiliaries)
+        self.log_episode_score(BENCH_SCORE, bench_score)
+
+    @abc.abstractmethod
+    def compute_bench_score(self, auxiliaries: Dict):
+        pass
 
 class SinglePlayerScorer(TextArenaScorer):
     """
@@ -53,24 +66,6 @@ class SinglePlayerScorer(TextArenaScorer):
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
         self.interaction_keys = [METRIC_SUCCESS, METRIC_ABORTED, METRIC_LOSE, "numeric_reward"]
-
-    def compute_episode_scores(self, episode_interactions: Dict):
-        """
-        Computes the episode scores based on the rewards from the environment.
-        """
-        instance_number = episode_interactions['meta']['game_id']
-        instance_number = str(instance_number).zfill(5)
-        module_logger.info(f"{self.__class__.__name__}: scoring {episode_interactions['meta']['experiment_name']}_{instance_number}")
-        auxiliaries = self.get_auxiliaries(episode_interactions)
-        bench_score = self.compute_bench_score(auxiliaries=auxiliaries)
-        self.log_episode_score(BENCH_SCORE, bench_score)
-
-    def get_auxiliaries(self, episode_interactions: Dict) -> Dict[str, float]:
-        """
-        Extracts auxiliary information from the episode interactions.
-        """
-        auxiliaries = {key: episode_interactions[key] for key in self.interaction_keys if key in episode_interactions}
-        return auxiliaries
 
     def compute_bench_score(self, auxiliaries: Dict):
         """
@@ -91,7 +86,7 @@ class HangmanScorer(SinglePlayerScorer):
 
     def compute_bench_score(self, auxiliaries: Dict):
         bench_score = super().compute_bench_score(auxiliaries)
-        life_score = (0.5 * auxiliaries['lives_left'] / auxiliaries['lives']) + 0.5  # life_score is in the range [0.5, 1]
+        life_score = (0.5 * auxiliaries['lives_left'] / auxiliaries['lives']) + 0.5  # life_score is in the interval [0.5, 1]
         self.log_episode_score('Life Score', life_score)
         if bench_score is not None:
             bench_score *= life_score
@@ -104,7 +99,7 @@ class WordChainsScorer(TextArenaScorer):
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
         self.interaction_keys += ["word_length_diff", "end_word_length"]
-
+    
     def compute_bench_score(self, auxiliaries: Dict):
         if auxiliaries[METRIC_ABORTED] == 1 or auxiliaries[METRIC_LOSE] == 1:
             return np.nan
@@ -112,7 +107,6 @@ class WordChainsScorer(TextArenaScorer):
             word_length_diff = auxiliaries["word_length_diff"]
             max_word_length = 21  # only 66 of 263,689 (.025%) words in the dictionary are longer than 21 letters, so this is a reasonable upper limit for a perfect game
             main_score = min(1, (word_length_diff / max_word_length)) * 100
-            self.log_episode_score(BENCH_SCORE, main_score)
             return main_score
         
 class BattleshipScorer(TextArenaScorer):

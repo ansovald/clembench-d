@@ -1,10 +1,11 @@
 {
   "experiments": [
     {
-      "name": "Minesweeper-v0",
+      "name": "default",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -16,6 +17,7 @@
         },
         {
           "game_id": 1,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -27,6 +29,7 @@
         },
         {
           "game_id": 2,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -38,6 +41,7 @@
         },
         {
           "game_id": 3,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -49,6 +53,7 @@
         },
         {
           "game_id": 4,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -60,6 +65,7 @@
         },
         {
           "game_id": 5,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -71,6 +77,7 @@
         },
         {
           "game_id": 6,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -82,6 +89,7 @@
         },
         {
           "game_id": 7,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -93,6 +101,7 @@
         },
         {
           "game_id": 8,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -104,6 +113,7 @@
         },
         {
           "game_id": 9,
+          "env_id": "Minesweeper-v0-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 8,
@@ -116,10 +126,11 @@
       ]
     },
     {
-      "name": "Minesweeper-v0-small",
+      "name": "small",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -131,6 +142,7 @@
         },
         {
           "game_id": 1,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -142,6 +154,7 @@
         },
         {
           "game_id": 2,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -153,6 +166,7 @@
         },
         {
           "game_id": 3,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -164,6 +178,7 @@
         },
         {
           "game_id": 4,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -175,6 +190,7 @@
         },
         {
           "game_id": 5,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -186,6 +202,7 @@
         },
         {
           "game_id": 6,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -197,6 +214,7 @@
         },
         {
           "game_id": 7,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -208,6 +226,7 @@
         },
         {
           "game_id": 8,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -219,6 +238,7 @@
         },
         {
           "game_id": 9,
+          "env_id": "Minesweeper-v0-small-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 5,
@@ -231,10 +251,11 @@
       ]
     },
     {
-      "name": "Minesweeper-v0-medium",
+      "name": "medium",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -246,6 +267,7 @@
         },
         {
           "game_id": 1,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -257,6 +279,7 @@
         },
         {
           "game_id": 2,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -268,6 +291,7 @@
         },
         {
           "game_id": 3,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -279,6 +303,7 @@
         },
         {
           "game_id": 4,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -290,6 +315,7 @@
         },
         {
           "game_id": 5,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -301,6 +327,7 @@
         },
         {
           "game_id": 6,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -312,6 +339,7 @@
         },
         {
           "game_id": 7,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -323,6 +351,7 @@
         },
         {
           "game_id": 8,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -334,6 +363,7 @@
         },
         {
           "game_id": 9,
+          "env_id": "Minesweeper-v0-medium-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 10,
@@ -346,10 +376,11 @@
       ]
     },
     {
-      "name": "Minesweeper-v0-hard",
+      "name": "hard",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -361,6 +392,7 @@
         },
         {
           "game_id": 1,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -372,6 +404,7 @@
         },
         {
           "game_id": 2,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -383,6 +416,7 @@
         },
         {
           "game_id": 3,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -394,6 +428,7 @@
         },
         {
           "game_id": 4,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -405,6 +440,7 @@
         },
         {
           "game_id": 5,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -416,6 +452,7 @@
         },
         {
           "game_id": 6,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -427,6 +464,7 @@
         },
         {
           "game_id": 7,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -438,6 +476,7 @@
         },
         {
           "game_id": 8,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,
@@ -449,6 +488,7 @@
         },
         {
           "game_id": 9,
+          "env_id": "Minesweeper-v0-hard-raw",
           "entry_point": "textarena.envs.Minesweeper.env:MinesweeperEnv",
           "env_specs": {
             "rows": 12,

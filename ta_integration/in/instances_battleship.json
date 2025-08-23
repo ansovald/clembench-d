@@ -1,10 +1,37 @@
 {
   "experiments": [
     {
-      "name": "Battleship-v0-standard",
+      "name": "small",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "ta_battleship-small",
+          "register_env": true,
+          "entry_point": "textarena.envs.Battleship.env:BattleshipEnv",
+          "env_specs": {
+            "grid_size": 7
+          },
+          "seed": 525119131
+        },
+        {
+          "game_id": 1,
+          "env_id": "ta_battleship-small",
+          "register_env": true,
+          "entry_point": "textarena.envs.Battleship.env:BattleshipEnv",
+          "env_specs": {
+            "grid_size": 7
+          },
+          "seed": 525119132
+        }
+      ]
+    },
+    {
+      "name": "standard",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "env_id": "ta_battleship-standard",
+          "register_env": true,
           "entry_point": "textarena.envs.Battleship.env:BattleshipEnv",
           "env_specs": {
             "grid_size": 10
@@ -13,6 +40,8 @@
         },
         {
           "game_id": 1,
+          "env_id": "ta_battleship-standard",
+          "register_env": true,
           "entry_point": "textarena.envs.Battleship.env:BattleshipEnv",
           "env_specs": {
             "grid_size": 10

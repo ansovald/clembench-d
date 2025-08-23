@@ -1,10 +1,11 @@
 {
   "experiments": [
     {
-      "name": "TowerOfHanoi-v0",
+      "name": "default",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "TowerOfHanoi-v0-raw",
           "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
           "env_specs": {
             "num_disks": 3,
@@ -15,10 +16,11 @@
       ]
     },
     {
-      "name": "TowerOfHanoi-v0-medium",
+      "name": "medium",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "TowerOfHanoi-v0-medium-raw",
           "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
           "env_specs": {
             "num_disks": 4,
@@ -29,10 +31,11 @@
       ]
     },
     {
-      "name": "TowerOfHanoi-v0-hard",
+      "name": "hard",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "TowerOfHanoi-v0-hard-raw",
           "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
           "env_specs": {
             "num_disks": 5,
@@ -43,10 +46,11 @@
       ]
     },
     {
-      "name": "TowerOfHanoi-v0-hardcore",
+      "name": "hardcore",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "TowerOfHanoi-v0-hardcore-raw",
           "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
           "env_specs": {
             "num_disks": 6,
@@ -57,10 +61,11 @@
       ]
     },
     {
-      "name": "TowerOfHanoi-v0-extreme",
+      "name": "extreme",
       "game_instances": [
         {
           "game_id": 0,
+          "env_id": "TowerOfHanoi-v0-extreme-raw",
           "entry_point": "textarena.envs.TowerOfHanoi.env:TowerOfHanoiEnv",
           "env_specs": {
             "num_disks": 7,
