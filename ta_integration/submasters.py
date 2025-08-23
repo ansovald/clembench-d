@@ -67,7 +67,8 @@ class SinglePlayerMaster(TextArenaGameMaster):
         numeric_reward = reward_for_player(rewards, player_id=0)
         self.log_key('numeric_reward', numeric_reward)
         metrics = self.prepare_metrics(numeric_reward)
-        self.log_keys(metrics)
+        for key, value in metrics.items():
+            self.log_key(key, value)
 
     def prepare_metrics(self, numeric_reward=None) -> Dict[str, float]:
         """
@@ -108,6 +109,7 @@ class HangmanMaster(SinglePlayerMaster):
         self.log_key('lives', self.env.state.game_state['tries_left'])
 
     def _on_after_game(self, **kwargs):
+        super()._on_after_game(**kwargs)
         self.log_key('lives_left', self.env.state.game_state['tries_left'])
         self.log_key('guessed_letters', self.env.state.game_state['guessed_letters'])
 

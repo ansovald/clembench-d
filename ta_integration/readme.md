@@ -144,3 +144,8 @@ Scoring is based on percentage of correctly guessed letters.
 Remaining lives are factored in the following way:
 * `life_score` is $\frac{l}{2 \times L} + \frac{1}{2}$, where $l$ is the number of lives left, and $L$ the initial number. It is always in the interval $[0.5, 1]$
 * Multiplied with percentage of guessed letters
+
+
+# Results
+
+Preliminary results can be found [here](https://github.com/ansovald/ClemTA_Results/)

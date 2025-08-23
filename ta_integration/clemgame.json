@@ -61,32 +61,6 @@
         ]
     },
     {
-        "game_name": "ta_three_player_tic_tac_toe",
-        "scorer": "TextArenaScorer",
-        "entry_point": "textarena.envs.ThreePlayerTicTacToe.env:ThreePlayerTicTacToeEnv",
-        "n_instances": 1,
-        "instances": "instances_three_player_tic_tac_toe",
-        "players": 3,
-        "image": null,
-        "languages": [
-            "en"
-        ],
-        "player_specs": [
-            {
-                "role": "A",
-                "custom_response": ["[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]", "[12]", "[13]", "[14]", "[15]", "[16]", "[17]", "[18]", "[19]", "[20]", "[21]", "[22]", "[23]", "[24]"]
-            },
-            {
-                "role": "B",
-                "custom_response": ["[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]", "[12]", "[13]", "[14]", "[15]", "[16]", "[17]", "[18]", "[19]", "[20]", "[21]", "[22]", "[23]", "[24]"]
-            },
-            {
-                "role": "C",
-                "custom_response": ["[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]", "[12]", "[13]", "[14]", "[15]", "[16]", "[17]", "[18]", "[19]", "[20]", "[21]", "[22]", "[23]", "[24]"]
-            }
-        ]
-    },
-    {
         "game_name": "ta_hangman",
         "entry_point": "textarena.envs.Hangman.env:HangmanEnv",
         "master": "HangmanMaster",
@@ -118,7 +92,7 @@
         },
         "master": "BattleshipMaster",
         "scorer": "BattleshipScorer",
-        "n_instances": 2,
+        "n_instances": 4,
         "instances": "instances_battleship",
         "players": 2,
         "image": null,
