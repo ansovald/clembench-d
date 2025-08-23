@@ -1,0 +1,25 @@
+{
+  "experiments": [
+    {
+      "name": "Battleship-v0-standard",
+      "game_instances": [
+        {
+          "game_id": 0,
+          "entry_point": "textarena.envs.Battleship.env:BattleshipEnv",
+          "env_specs": {
+            "grid_size": 10
+          },
+          "seed": 525119131
+        },
+        {
+          "game_id": 1,
+          "entry_point": "textarena.envs.Battleship.env:BattleshipEnv",
+          "env_specs": {
+            "grid_size": 10
+          },
+          "seed": 525119132
+        }
+      ]
+    }
+  ]
+}

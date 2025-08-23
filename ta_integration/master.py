@@ -4,6 +4,7 @@ from clemcore.clemgame.metrics import BENCH_SCORE
 
 from ta_master import TextArenaGameMaster
 from submasters import *
+from metrics import *
 
 from typing import List, Dict, Tuple
 import logging
@@ -13,16 +14,6 @@ Message = Tuple[int, str]
 Observations = Dict[int, List[Message]]
 
 logger = logging.getLogger(__name__)
-
-class TextArenaScorer(GameScorer):
-    """
-    Default scorer for the TextArena environment.
-    """
-    def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
-        super().__init__(game_name, experiment, game_instance)
-
-    def compute_episode_scores(self, episode_interactions: Dict):
-        self.log_episode_score(BENCH_SCORE, episode_interactions[BENCH_SCORE])
 
 class TextArenaBenchmark(GameBenchmark):
     def __init__(self, game_spec: GameSpec):

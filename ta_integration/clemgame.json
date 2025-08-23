@@ -1,8 +1,8 @@
 [
     {
         "game_name": "ta_tower_of_hanoi",
-        "main_game": "ta_tower_of_hanoi",
         "master": "SinglePlayerMaster",
+        "scorer": "SinglePlayerScorer",
         "ta_name": "TowerOfHanoi-v0",
         "n_instances": 1,
         "instances": "instances_tower_of_hanoi",
@@ -20,7 +20,6 @@
     },
     {
         "game_name": "ta_word_chains",
-        "main_game": "ta_word_chains",
         "master": "WordChainsMaster",
         "ta_name": "WordChains-v0",
         "n_instances": 10,
@@ -43,10 +42,10 @@
     },
     {
         "game_name": "ta_minesweeper",
-        "main_game": "ta_minesweeper",
         "ta_name": "Minesweeper-v0",
         "master": "MinesweeperMaster",
-        "n_instances": 5,
+        "scorer": "SinglePlayerScorer",
+        "n_instances": 10,
         "instances": "instances_minesweeper",
         "players": 1,
         "image": null,
@@ -62,7 +61,6 @@
     },
     {
         "game_name": "ta_three_player_tic_tac_toe",
-        "main_game": "ta_three_player_tic_tac_toe",
         "ta_name": "ThreePlayerTicTacToe-v0",
         "n_instances": 1,
         "instances": "instances_three_player_tic_tac_toe",
@@ -83,6 +81,48 @@
             {
                 "role": "C",
                 "custom_response": ["[0]", "[1]", "[2]", "[3]", "[4]", "[5]", "[6]", "[7]", "[8]", "[9]", "[10]", "[11]", "[12]", "[13]", "[14]", "[15]", "[16]", "[17]", "[18]", "[19]", "[20]", "[21]", "[22]", "[23]", "[24]"]
+            }
+        ]
+    },
+    {
+        "game_name": "ta_hangman",
+        "ta_name": "Hangman-v0",
+        "master": "HangmanMaster",
+        "scorer": "HangmanScorer",
+        "n_instances": 10,
+        "instances": "instances_hangman",
+        "players": 1,
+        "image": null,
+        "languages": [
+            "en"
+        ],
+        "player_specs": [
+            {
+                "role": "Guesser",
+                "custom_response": ["[A]", "[B]", "[C]", "[D]", "[E]", "[F]", "[G]", "[H]", "[I]", "[J]", "[K]", "[L]", "[M]", "[N]", "[O]", "[P]", "[Q]", "[R]", "[S]", "[T]", "[U]", "[V]", "[W]", "[X]", "[Y]", "[Z]"]
+            }
+        ]
+    },
+    {
+        "game_name": "ta_battleship",
+        "ta_name": "Battleship-v0",
+        "master": "BattleshipMaster",
+        "scorer": "BattleshipScorer",
+        "n_instances": 2,
+        "instances": "instances_battleship",
+        "players": 2,
+        "image": null,
+        "languages": [
+            "en"
+        ],
+        "player_specs": [
+            {
+                "role": "Player 0",
+                "custom_response": ["[A0]", "[B1]", "[C2]", "[D3]", "[E4]", "[F5]", "[G6]", "[H7]", "[I8]", "[J9]"]
+            },
+            {
+                "role": "Player 1",
+                "custom_response": ["[A0]", "[B1]", "[C2]", "[D3]", "[E4]", "[F5]", "[G6]", "[H7]", "[I8]", "[J9]"]
             }
         ]
     }
