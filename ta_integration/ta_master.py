@@ -82,14 +82,14 @@ class TextArenaGameMaster(GameMaster):
 
     def _on_before_reset(self):
         """
-        This method is called before the environment is reset.
+        This method is called after the environment is created, but before it is reset.
         It can, e.g., be used to change variables in the env to make instances deterministic.
         """
         pass
     
     def _on_before_game(self):
         """
-        This method is called before the game starts.
+        This method is called after the environment is reset, but before the game starts.
         It can be used to set up the game state or perform any necessary initialization.
         """
         pass

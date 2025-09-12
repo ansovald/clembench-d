@@ -116,7 +116,7 @@ Scoring is somewhat difficult and depends on the game and number of players. `re
 In single player games, `rewards` contains a numeric value that usually takes on of the following values:
 * `-1` means aborted (NOTE: as of August 2025, single player games never return `-1`, likely a bug)
 * `1` means success
-* a float in the interval `[0-1]`, e.g. if a game was terminated by exceeding turn limit. Usually calculated by a `ta_env._get_percentage_completion()`
+* a float in the interval $[0,1]$, e.g. if a game was terminated by exceeding turn limit. Usually calculated by a `ta_env._get_percentage_completion()`
 In the latter two cases, the reward can be the basis for calculating the Main Score.
 
 `SinglePlayerScorer` simply logs `reward * 100` as Main Score (if `>=0`).

@@ -1,8 +1,7 @@
-from clemcore.clemgame import GameBenchmark, GameScorer
+from clemcore.clemgame import GameBenchmark
 from clemcore.clemgame.registry import GameSpec
 from clemcore.clemgame.metrics import BENCH_SCORE
 
-from ta_master import TextArenaGameMaster
 from submasters import *
 from metrics import *
 
