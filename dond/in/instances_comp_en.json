@@ -1,0 +1,625 @@
+{
+    "experiments": [
+        {
+            "name": "comp_en",
+            "game_instances": [
+                {
+                    "game_id": 0,
+                    "item_types": [
+                        "ring",
+                        "canvas",
+                        "wrench",
+                        "shell"
+                    ],
+                    "item_types_plural": [
+                        "rings",
+                        "canvases",
+                        "wrenches",
+                        "shells"
+                    ],
+                    "item_counts": [
+                        1,
+                        1,
+                        1,
+                        2
+                    ],
+                    "player_a_values": [
+                        3,
+                        4,
+                        1,
+                        1
+                    ],
+                    "player_b_values": [
+                        0,
+                        1,
+                        3,
+                        3
+                    ]
+                },
+                {
+                    "game_id": 1,
+                    "item_types": [
+                        "wrench",
+                        "eraser",
+                        "berry",
+                        "nut",
+                        "carrot"
+                    ],
+                    "item_types_plural": [
+                        "wrenches",
+                        "erasers",
+                        "berries",
+                        "nuts",
+                        "carrots"
+                    ],
+                    "item_counts": [
+                        1,
+                        1,
+                        1,
+                        1,
+                        1
+                    ],
+                    "player_a_values": [
+                        0,
+                        0,
+                        2,
+                        0,
+                        8
+                    ],
+                    "player_b_values": [
+                        1,
+                        3,
+                        1,
+                        5,
+                        0
+                    ]
+                },
+                {
+                    "game_id": 2,
+                    "item_types": [
+                        "glass",
+                        "onion",
+                        "shovel",
+                        "box"
+                    ],
+                    "item_types_plural": [
+                        "glasses",
+                        "onions",
+                        "shovels",
+                        "boxes"
+                    ],
+                    "item_counts": [
+                        1,
+                        2,
+                        1,
+                        1
+                    ],
+                    "player_a_values": [
+                        2,
+                        2,
+                        1,
+                        3
+                    ],
+                    "player_b_values": [
+                        3,
+                        0,
+                        3,
+                        4
+                    ]
+                },
+                {
+                    "game_id": 3,
+                    "item_types": [
+                        "wrench",
+                        "leaf",
+                        "sponge"
+                    ],
+                    "item_types_plural": [
+                        "wrenches",
+                        "leaves",
+                        "sponges"
+                    ],
+                    "item_counts": [
+                        4,
+                        1,
+                        2
+                    ],
+                    "player_a_values": [
+                        0,
+                        8,
+                        1
+                    ],
+                    "player_b_values": [
+                        2,
+                        2,
+                        0
+                    ]
+                },
+                {
+                    "game_id": 4,
+                    "item_types": [
+                        "banana",
+                        "bolt",
+                        "tomato",
+                        "plate",
+                        "lamp"
+                    ],
+                    "item_types_plural": [
+                        "bananas",
+                        "bolts",
+                        "tomatoes",
+                        "plates",
+                        "lamps"
+                    ],
+                    "item_counts": [
+                        1,
+                        1,
+                        1,
+                        1,
+                        1
+                    ],
+                    "player_a_values": [
+                        3,
+                        1,
+                        4,
+                        1,
+                        1
+                    ],
+                    "player_b_values": [
+                        2,
+                        6,
+                        0,
+                        2,
+                        0
+                    ]
+                },
+                {
+                    "game_id": 5,
+                    "item_types": [
+                        "sock",
+                        "shovel",
+                        "bag",
+                        "pen"
+                    ],
+                    "item_types_plural": [
+                        "socks",
+                        "shovels",
+                        "bags",
+                        "pens"
+                    ],
+                    "item_counts": [
+                        1,
+                        2,
+                        1,
+                        1
+                    ],
+                    "player_a_values": [
+                        3,
+                        2,
+                        2,
+                        1
+                    ],
+                    "player_b_values": [
+                        1,
+                        1,
+                        0,
+                        7
+                    ]
+                },
+                {
+                    "game_id": 6,
+                    "item_types": [
+                        "dice",
+                        "coin",
+                        "spoon"
+                    ],
+                    "item_types_plural": [
+                        "dice",
+                        "coins",
+                        "spoons"
+                    ],
+                    "item_counts": [
+                        4,
+                        2,
+                        1
+                    ],
+                    "player_a_values": [
+                        2,
+                        1,
+                        0
+                    ],
+                    "player_b_values": [
+                        1,
+                        1,
+                        4
+                    ]
+                },
+                {
+                    "game_id": 7,
+                    "item_types": [
+                        "pen",
+                        "coin",
+                        "rock",
+                        "sock"
+                    ],
+                    "item_types_plural": [
+                        "pens",
+                        "coins",
+                        "rocks",
+                        "socks"
+                    ],
+                    "item_counts": [
+                        1,
+                        1,
+                        1,
+                        2
+                    ],
+                    "player_a_values": [
+                        2,
+                        5,
+                        1,
+                        1
+                    ],
+                    "player_b_values": [
+                        2,
+                        0,
+                        8,
+                        0
+                    ]
+                },
+                {
+                    "game_id": 8,
+                    "item_types": [
+                        "remote",
+                        "table",
+                        "sock"
+                    ],
+                    "item_types_plural": [
+                        "remotes",
+                        "tables",
+                        "socks"
+                    ],
+                    "item_counts": [
+                        1,
+                        2,
+                        2
+                    ],
+                    "player_a_values": [
+                        6,
+                        1,
+                        1
+                    ],
+                    "player_b_values": [
+                        0,
+                        1,
+                        4
+                    ]
+                },
+                {
+                    "game_id": 9,
+                    "item_types": [
+                        "seed",
+                        "tomato",
+                        "bag"
+                    ],
+                    "item_types_plural": [
+                        "seeds",
+                        "tomatoes",
+                        "bags"
+                    ],
+                    "item_counts": [
+                        2,
+                        2,
+                        2
+                    ],
+                    "player_a_values": [
+                        2,
+                        2,
+                        1
+                    ],
+                    "player_b_values": [
+                        4,
+                        0,
+                        1
+                    ]
+                },
+                {
+                    "game_id": 10,
+                    "item_types": [
+                        "bowl",
+                        "watch",
+                        "picture"
+                    ],
+                    "item_types_plural": [
+                        "bowls",
+                        "watches",
+                        "pictures"
+                    ],
+                    "item_counts": [
+                        1,
+                        3,
+                        2
+                    ],
+                    "player_a_values": [
+                        2,
+                        0,
+                        4
+                    ],
+                    "player_b_values": [
+                        5,
+                        1,
+                        1
+                    ]
+                },
+                {
+                    "game_id": 11,
+                    "item_types": [
+                        "whistle",
+                        "lamp",
+                        "seed",
+                        "key"
+                    ],
+                    "item_types_plural": [
+                        "whistles",
+                        "lamps",
+                        "seeds",
+                        "keys"
+                    ],
+                    "item_counts": [
+                        1,
+                        1,
+                        3,
+                        1
+                    ],
+                    "player_a_values": [
+                        5,
+                        1,
+                        0,
+                        4
+                    ],
+                    "player_b_values": [
+                        0,
+                        3,
+                        1,
+                        4
+                    ]
+                },
+                {
+                    "game_id": 12,
+                    "item_types": [
+                        "potato",
+                        "bowl",
+                        "knife"
+                    ],
+                    "item_types_plural": [
+                        "potatoes",
+                        "bowls",
+                        "knives"
+                    ],
+                    "item_counts": [
+                        1,
+                        1,
+                        3
+                    ],
+                    "player_a_values": [
+                        3,
+                        4,
+                        1
+                    ],
+                    "player_b_values": [
+                        1,
+                        9,
+                        0
+                    ]
+                },
+                {
+                    "game_id": 13,
+                    "item_types": [
+                        "bell",
+                        "bolt",
+                        "wrench"
+                    ],
+                    "item_types_plural": [
+                        "bells",
+                        "bolts",
+                        "wrenches"
+                    ],
+                    "item_counts": [
+                        1,
+                        3,
+                        1
+                    ],
+                    "player_a_values": [
+                        1,
+                        3,
+                        0
+                    ],
+                    "player_b_values": [
+                        6,
+                        1,
+                        1
+                    ]
+                },
+                {
+                    "game_id": 14,
+                    "item_types": [
+                        "scissors",
+                        "stone",
+                        "toy"
+                    ],
+                    "item_types_plural": [
+                        "scissors",
+                        "stones",
+                        "toys"
+                    ],
+                    "item_counts": [
+                        1,
+                        2,
+                        2
+                    ],
+                    "player_a_values": [
+                        6,
+                        0,
+                        2
+                    ],
+                    "player_b_values": [
+                        6,
+                        2,
+                        0
+                    ]
+                },
+                {
+                    "game_id": 15,
+                    "item_types": [
+                        "sponge",
+                        "ring",
+                        "whistle"
+                    ],
+                    "item_types_plural": [
+                        "sponges",
+                        "rings",
+                        "whistles"
+                    ],
+                    "item_counts": [
+                        1,
+                        2,
+                        3
+                    ],
+                    "player_a_values": [
+                        3,
+                        2,
+                        1
+                    ],
+                    "player_b_values": [
+                        1,
+                        0,
+                        3
+                    ]
+                },
+                {
+                    "game_id": 16,
+                    "item_types": [
+                        "mirror",
+                        "ball",
+                        "stapler"
+                    ],
+                    "item_types_plural": [
+                        "mirrors",
+                        "balls",
+                        "staplers"
+                    ],
+                    "item_counts": [
+                        2,
+                        2,
+                        2
+                    ],
+                    "player_a_values": [
+                        4,
+                        0,
+                        1
+                    ],
+                    "player_b_values": [
+                        1,
+                        3,
+                        1
+                    ]
+                },
+                {
+                    "game_id": 17,
+                    "item_types": [
+                        "towel",
+                        "thimble",
+                        "seed"
+                    ],
+                    "item_types_plural": [
+                        "towels",
+                        "thimbles",
+                        "seeds"
+                    ],
+                    "item_counts": [
+                        3,
+                        1,
+                        1
+                    ],
+                    "player_a_values": [
+                        3,
+                        1,
+                        0
+                    ],
+                    "player_b_values": [
+                        2,
+                        0,
+                        4
+                    ]
+                },
+                {
+                    "game_id": 18,
+                    "item_types": [
+                        "book",
+                        "hook",
+                        "broom",
+                        "shell"
+                    ],
+                    "item_types_plural": [
+                        "books",
+                        "hooks",
+                        "brooms",
+                        "shells"
+                    ],
+                    "item_counts": [
+                        1,
+                        1,
+                        1,
+                        2
+                    ],
+                    "player_a_values": [
+                        1,
+                        3,
+                        2,
+                        2
+                    ],
+                    "player_b_values": [
+                        5,
+                        2,
+                        3,
+                        0
+                    ]
+                },
+                {
+                    "game_id": 19,
+                    "item_types": [
+                        "flower",
+                        "battery",
+                        "sponge"
+                    ],
+                    "item_types_plural": [
+                        "flowers",
+                        "batteries",
+                        "sponges"
+                    ],
+                    "item_counts": [
+                        2,
+                        1,
+                        2
+                    ],
+                    "player_a_values": [
+                        2,
+                        2,
+                        2
+                    ],
+                    "player_b_values": [
+                        1,
+                        8,
+                        0
+                    ]
+                }
+            ],
+            "max_turns": 5,
+            "mode": "comp",
+            "language": "en",
+            "initial_prompt": "You are playing a competitive negotiation game in which you have to agree on how to divide a set of items among you and another player.\n\nRules:\n(a) You and the other player are given a set of items. Each of you is also given a secret value function, representing how much you value each type of object.\n(b) You exchange messages with the other player to agree on who gets which items. You can send a maximum of $N$ messages each, or terminate early by making a secret proposal at any time.\n(c) You are each asked to submit a secret proposal indicating the items you want formatted in square brackets as follows: \"[Proposal: <number> <object name>, <number> <object name>, <...>]\"\n(d) If your proposals are complementary, i.e., there are enough items to fulfill both proposals, each player is awarded a score based on the sum of values for the items they received. Otherwise, both of you get zero points.\n(e) Your goal is to maximize the difference between your score and the score of the other player.\n\nLet us start.\n\nThe set of available items is:\n\n$ITEMS$\n\nYour secret value function is:\n\n$VALUE_FUNCTION$\n\nIMPORTANT: Your messages, unless it is the secret proposal, are directly transmitted to the other player, so do not include any response to the rules or text announcing your message. To make a secret proposal, use the indicated format. Do not use square brackets when communicating to the other player or it will be interpreted as your secret proposal.\n",
+            "proposal_early": "The other player has submitted a secret proposal. It is now your turn to submit a proposal of your own.\n",
+            "proposal_timeout": "The time is up. It is now your turn to submit a secret proposal.\n"
+        }
+    ]
+}
