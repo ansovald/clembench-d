@@ -13,11 +13,11 @@ import argparse
 from clemcore.clemgame import GameInstanceGenerator
 
 # Different experiment configurations.
-modes = ['coop', 'semi', 'comp']
+modes = ['coop', 'semi'] #, 'comp']
 languages = ['en', 'de', 'it']
 
 # Number of instances per mode and language combination.
-n_instances = 50
+n_instances = 20
 n_messages = 5          # Number of messages are allowed per player.
 n_item_types = (3, 5)   # The number of different item types.
 n_items = (5, 8)        # The number of different items.
