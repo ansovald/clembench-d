@@ -25,6 +25,8 @@ n_points = 10           # Number of value points per player.
 
 logger = logging.getLogger(__name__)
 
+SEED = 3141592
+
 
 class DealOrNoDealGameInstanceGenerator(GameInstanceGenerator):
     '''
@@ -32,71 +34,71 @@ class DealOrNoDealGameInstanceGenerator(GameInstanceGenerator):
     creates instances for one mode and language combination.
     '''
 
-    def __init__(self, mode: str, language: str):
+    def __init__(self, language: str):
         super().__init__(os.path.dirname(__file__))
-        self.mode = mode
         self.language = language
 
-    def on_generate(self):
-        # Load the list of possible item words.
-        item_words = self.load_json(
-            f'resources/{self.language}/possible_items.json'
-        )
-        item_words_plural = self.load_json(
-            f'resources/{self.language}/possible_items_plural.json'
-        )
-        assert isinstance(item_words, list)
-        assert isinstance(item_words_plural, list)
-        # Setup experiment level information.
-        experiment = self.add_experiment(f'{self.mode}_{self.language}')
-        experiment['max_turns'] = n_messages
-        experiment['mode'] = self.mode
-        experiment['language'] = self.language
-        # Just load the template. Will be filled in by the game master.
-        experiment['initial_prompt'] = self.load_template(
-            f'resources/{self.language}/initial_{self.mode}'
-        )
-        experiment['proposal_early'] = self.load_template(
-            f'resources/{self.language}/proposal_early'
-        )
-        experiment['proposal_timeout'] = self.load_template(
-            f'resources/{self.language}/proposal_timeout'
-        )
-        # Create the instances.
-        target_id = 0
-        while target_id < n_instances:
-            while True:
-                # Sample a new set of item types.
-                num_types = random.randint(n_item_types[0], n_item_types[1])
-                item_types_idx = random.sample(
-                    range(len(item_words)), k=num_types
-                )
-                item_types = [item_words[i] for i in item_types_idx]
-                item_types_plural = [
-                    item_words_plural[i] for i in item_types_idx
-                ]
-                # Distribute item counts.
-                num_items = random.randint(n_items[0], n_items[1])
-                item_counts = [1] * num_types
-                while sum(item_counts) < num_items:
-                    item_counts[random.randrange(len(item_counts))] += 1
-                # Create value functions.
-                values_a = [
-                    random.randint(0, n_points) for _ in range(num_types)
-                ]
-                values_b = [
-                    random.randint(0, n_points) for _ in range(num_types)
-                ]
-                if self.is_valid_instance(item_counts, values_a, values_b):
-                    break
-            # Add the new game instance.
-            game_instance = self.add_game_instance(experiment, target_id)
-            game_instance['item_types'] = item_types
-            game_instance['item_types_plural'] = item_types_plural
-            game_instance['item_counts'] = item_counts
-            game_instance['player_a_values'] = values_a
-            game_instance['player_b_values'] = values_b
-            target_id += 1
+    def on_generate(self, seed, **kwargs):
+        for mode in modes:
+            # Load the list of possible item words.
+            item_words = self.load_json(
+                f'resources/{self.language}/possible_items.json'
+            )
+            item_words_plural = self.load_json(
+                f'resources/{self.language}/possible_items_plural.json'
+            )
+            assert isinstance(item_words, list)
+            assert isinstance(item_words_plural, list)
+            # Setup experiment level information.
+            experiment = self.add_experiment(f'{mode}_{self.language}')
+            experiment['max_turns'] = n_messages
+            experiment['mode'] = mode
+            experiment['language'] = self.language
+            # Just load the template. Will be filled in by the game master.
+            experiment['initial_prompt'] = self.load_template(
+                f'resources/{self.language}/initial_{mode}'
+            )
+            experiment['proposal_early'] = self.load_template(
+                f'resources/{self.language}/proposal_early'
+            )
+            experiment['proposal_timeout'] = self.load_template(
+                f'resources/{self.language}/proposal_timeout'
+            )
+            # Create the instances.
+            target_id = 0
+            while target_id < n_instances:
+                while True:
+                    # Sample a new set of item types.
+                    num_types = random.randint(n_item_types[0], n_item_types[1])
+                    item_types_idx = random.sample(
+                        range(len(item_words)), k=num_types
+                    )
+                    item_types = [item_words[i] for i in item_types_idx]
+                    item_types_plural = [
+                        item_words_plural[i] for i in item_types_idx
+                    ]
+                    # Distribute item counts.
+                    num_items = random.randint(n_items[0], n_items[1])
+                    item_counts = [1] * num_types
+                    while sum(item_counts) < num_items:
+                        item_counts[random.randrange(len(item_counts))] += 1
+                    # Create value functions.
+                    values_a = [
+                        random.randint(0, n_points) for _ in range(num_types)
+                    ]
+                    values_b = [
+                        random.randint(0, n_points) for _ in range(num_types)
+                    ]
+                    if self.is_valid_instance(item_counts, values_a, values_b):
+                        break
+                # Add the new game instance.
+                game_instance = self.add_game_instance(experiment, target_id)
+                game_instance['item_types'] = item_types
+                game_instance['item_types_plural'] = item_types_plural
+                game_instance['item_counts'] = item_counts
+                game_instance['player_a_values'] = values_a
+                game_instance['player_b_values'] = values_b
+                target_id += 1
 
     def is_valid_instance(self, item_counts: list[int], values_a: list[int], values_b: list[int]) -> bool:
         '''
@@ -123,8 +125,11 @@ if __name__ == '__main__':
     for lang in languages:
         # Seed for reproducibility. We set it here so that all languages get the
         # same instances, except for the language of course.
-        random.seed(3141592)
-        for mode in modes:
-            DealOrNoDealGameInstanceGenerator(
-                mode=mode, language=lang
-            ).generate(filename=f'instances_{mode}_{lang}.json')
+        random.seed(SEED)
+        filename = 'instances.json'
+        if lang != 'en':
+            filename = f'instances_{lang}.json'
+        DealOrNoDealGameInstanceGenerator(
+            language=lang
+        ).generate(filename=filename)
+        logger.info(f'Generated instances for language {lang} and stored in {filename}')
