@@ -1,0 +1,10 @@
+{
+  "game_name": "testgame",
+  "description": "Simple test game for single-turn Q/A",
+  "main_game": "testgame",
+  "players": 1,
+  "image": "none",
+  "languages": ["en"],
+  "benchmark": [],
+  "roles": ["TestPlayer"]
+}

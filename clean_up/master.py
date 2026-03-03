@@ -175,8 +175,6 @@ class CleanUpMaster(DialogueGameMaster):
         self.game_instance = game_instance
         self.modality = game_instance['modality']
 
-        self.log_key("markdown", True)
-
         self.intermittent_prompts = game_instance['intermittent_prompts']
         self.parse_errors = game_instance['parse_errors']
 
@@ -500,7 +498,6 @@ class CleanUpMaster(DialogueGameMaster):
 class CleanUpScorer(GameScorer):
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
-        print(f"{experiment['name']}", end=' ')
 
     def score_turns(self, episode_interactions: Dict) -> None:
         """ Turn-level scores """
