@@ -1,21 +1,16 @@
-import os.path
-from typing import Dict, Tuple, List, Union, Set, KeysView, Any
+from typing import Dict, List, Any
 import logging
 import numpy as np
 import re
 import ast
-from itertools import combinations
 
 from clemcore.backends import Model
-from clemcore.clemgame import GameSpec, GameMaster, GameBenchmark, Player, DialogueGameMaster, GameScorer, \
-    GameError, ParseError
+from clemcore.clemgame import GameSpec, GameMaster, GameBenchmark, Player, GameError, ParseError
+from clemcore.clemgame.legacy.scorer import GameScorer
+from clemcore.clemgame.legacy.master import DialogueGameMaster
 from clemcore.clemgame.errors import GameError, ParseError
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, METRIC_REQUEST_COUNT
 from clemcore.clemgame.metrics import METRIC_REQUEST_COUNT_VIOLATED, BENCH_SCORE
-
-
-from clemcore.utils import file_utils, string_utils
-from matplotlib.font_manager import weight_dict
 
 logger = logging.getLogger(__name__)
 
@@ -417,6 +412,14 @@ class HotAirBalloon(DialogueGameMaster):
         else:
             return obj
 
+    def _on_valid_player_response(self, player: Player, response: str):
+        # was introduced as abstract method after initial implementation
+        pass
+
+    def _validate_player_response(self, player: Player, response: str):
+        # was introduced as abstract method after initial implementation
+        pass
+
     def _on_after_game(self) -> None:
         """Log variables needed for scoring."""
 
@@ -529,7 +532,7 @@ class SomeGameBenchmark(GameBenchmark):
     def __init__(self, game_spec: GameSpec):
         super().__init__(game_spec)
 
-    def create_game_master(self, experiment, player_models):
+    def create_game_master(self, experiment, player_models) -> GameMaster:
         return HotAirBalloon(self.game_spec, experiment, player_models)
 
     def create_game_scorer(self, experiment: Dict, game_instance: Dict) -> GameScorer:

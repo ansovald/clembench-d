@@ -8,7 +8,9 @@ import numpy as np
 from dataclasses import dataclass
 
 from clemcore.backends import Model
-from clemcore.clemgame import GameSpec, GameMaster, GameBenchmark, Player, DialogueGameMaster, GameScorer
+from clemcore.clemgame import GameSpec, GameMaster, GameBenchmark, Player
+from clemcore.clemgame.legacy.scorer import GameScorer
+from clemcore.clemgame.legacy.master import DialogueGameMaster
 from clemcore.clemgame import ParseError, RuleViolationError, GameError
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, BENCH_SCORE
 
@@ -432,6 +434,14 @@ class DealOrNoDeal(DialogueGameMaster):
             return 1
         else:
             raise ValueError('unknown game mode')
+    
+    def _on_valid_player_response(self, player: Player, response: str):
+        # was introduced as abstract method after initial implementation
+        pass
+
+    def _validate_player_response(self, player: Player, response: str):
+        # was introduced as abstract method after initial implementation
+        pass
 
     def _on_after_game(self):
         self.log_key(METRIC_ABORTED, int(self.state.aborted))
