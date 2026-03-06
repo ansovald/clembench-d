@@ -5,9 +5,7 @@ import re
 import ast
 
 from clemcore.backends import Model
-from clemcore.clemgame import GameSpec, GameMaster, GameBenchmark, Player, GameError, ParseError
-from clemcore.clemgame.legacy.scorer import GameScorer
-from clemcore.clemgame.legacy.master import DialogueGameMaster
+from clemcore.clemgame import GameSpec, GameMaster, DialogueGameMaster, GameScorer, GameBenchmark, Player, GameError, ParseError
 from clemcore.clemgame.errors import GameError, ParseError
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, METRIC_REQUEST_COUNT
 from clemcore.clemgame.metrics import METRIC_REQUEST_COUNT_VIOLATED, BENCH_SCORE
@@ -411,14 +409,6 @@ class HotAirBalloon(DialogueGameMaster):
             return [self.make_json_serializable(i) for i in obj]
         else:
             return obj
-
-    def _on_valid_player_response(self, player: Player, response: str):
-        # was introduced as abstract method after initial implementation
-        pass
-
-    def _validate_player_response(self, player: Player, response: str):
-        # was introduced as abstract method after initial implementation
-        pass
 
     def _on_after_game(self) -> None:
         """Log variables needed for scoring."""
