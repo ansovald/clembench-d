@@ -6,7 +6,6 @@ import ast
 
 from clemcore.backends import Model
 from clemcore.clemgame import GameSpec, GameMaster, DialogueGameMaster, GameScorer, GameBenchmark, Player, GameError, ParseError
-from clemcore.clemgame.errors import GameError, ParseError
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, METRIC_REQUEST_COUNT
 from clemcore.clemgame.metrics import METRIC_REQUEST_COUNT_VIOLATED, BENCH_SCORE
 

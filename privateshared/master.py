@@ -21,6 +21,7 @@ from constants import (
     INVALID_LABEL, INVALID, SUCCESS, NOT_SUCCESS, NOT_PARSED, RESULT)
 
 logger = logging.getLogger(__name__)
+stdout_logger = logging.getLogger('privateshared')
 
 
 class Words:
@@ -374,6 +375,7 @@ class PrivateSharedScorer(GameScorer):
     def __init__(self, game_name: str, experiment: Dict, game_instance: Dict):
         super().__init__(game_name, experiment, game_instance)
         self.slots = game_instance["slots"]
+        # stdout_logger.warning(f"Initialized scorer for {game_name} with experiment {experiment['name']} and instance with slots {self.slots}")
 
     def compute_scores(self, episode_interactions: Dict) -> None:
         logs = episode_interactions
@@ -427,6 +429,7 @@ class PrivateSharedScorer(GameScorer):
         # we truncate kappa to be between 0 and 1
         trunc_kappa = max(0, kappa) if not aborted else np.nan
         filled = logs['Filled Slots']
+        # stdout_logger.warning(f"Filled slots: {filled}")
         sf_acc = sum(filled) / len(filled) if not aborted else np.nan
         bench_score = PrivateSharedScorer.compute_bench_score(sf_acc, trunc_kappa)
 
