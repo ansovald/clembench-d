@@ -174,7 +174,7 @@ class DealOrNoDeal(DialogueGameMaster):
             mode=self.experiment['mode'],
             language=self.experiment['language'],
             max_rounds=self.experiment['max_turns'],
-            player_a_initial_prompt=player_b_initial_prompt,
+            player_a_initial_prompt=player_a_initial_prompt,
             player_b_initial_prompt=player_b_initial_prompt,
             proposal_prompt_early=self.experiment['proposal_early'],
             proposal_prompt_timeout=self.experiment['proposal_timeout'],
