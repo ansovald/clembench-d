@@ -1,15 +1,14 @@
 import re
-import os
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import numpy as np
 from string import Template
-import time
-import random
 import abc
+from dataclasses import dataclass
 
 from clemcore.backends import Model
 from clemcore.clemgame import GameSpec, GameBenchmark, GameMaster, DialogueGameMaster, GameScorer, Player, ParseError, GameError, RuleViolationError
+from clemcore.clemgame.master import GameState, Outcome
 from clemcore.clemgame.events import GameEventSource
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, BENCH_SCORE
 from resources.game_state.utils import GameObject, png_to_base64
@@ -41,7 +40,6 @@ class Cleaner(Player):
         logger.debug(f"Initializing {self.__class__.__name__}")
         super().__init__(model, forget_extras=["image"])
         self._custom_responses = self._prepare_custom_responses()
-        self.game_state = None  # This will be set by the game master
         self._relay_message = ""
         self._relay_images = []
         self.finished = False # Used to store whether the player already suggested finishing the game
@@ -166,56 +164,88 @@ PLAYER_DICT = {
     "semantic_text": GridCleaner
 }
 
+@dataclass
+class CleanUpGameState(GameState):
+    modality: str = None
+    intermittent_prompts: Dict = None
+    parse_errors: Dict = None
+    say_pattern: re.Pattern[str] = None
+    move_pattern: re.Pattern[str] = None
+    restricted_patterns: list = None
+    img_prefixes: Dict = None
+    player_states: Dict = None
+    initial_board: str = None
+    initial_distance: float = None
+    penalties: int = 0
+    max_penalties: int = None
+    max_rounds: int = None
+    message_stats: Dict = None
+    metric_preparer: object = None
+    p1_initial_prompt: str = None
+    p2_initial_prompt: str = None
+    terminate_question: str = None
+    terminate_answer: str = None
+    pass_turn: bool = True
+
+    def __post_init__(self):
+        super().__init__()
+
 class CleanUpMaster(DialogueGameMaster):
     def __init__(self, game_spec, experiment: Dict, player_models: List[Model]):
         super().__init__(game_spec, experiment, player_models)
 
     def _on_setup(self, **game_instance):
-        self.game_instance = game_instance
-        self.modality = game_instance['modality']
+        modality = game_instance['modality']
 
-        self.intermittent_prompts = game_instance['intermittent_prompts']
-        self.parse_errors = game_instance['parse_errors']
+        self.player_1 = PLAYER_DICT[modality](self.player_models[0])
+        self.player_2 = PLAYER_DICT[modality](self.player_models[1])
 
-        # Compile all regex patterns used in the game instance
-        self.say_pattern = re.compile(self.game_instance['say_pattern'], re.DOTALL)
-        self.move_pattern = re.compile(self.game_instance['move_pattern'], re.DOTALL)
-        self.restricted_patterns = []
-        for pattern in self.game_instance.get('restricted_patterns', []):
-            self.restricted_patterns.append(re.compile(pattern, re.DOTALL))
+        self.add_player(self.player_1)
+        self.add_player(self.player_2)
 
-        self.img_prefixes = []  # List of image prefixes, one per player
-        self.player_1 = PLAYER_DICT[self.modality](self.player_models[0])
-        self.player_2 = PLAYER_DICT[self.modality](self.player_models[1])
-        self.add_player(self.player_1, objects=self.game_instance['objects_1'])
-        self.add_player(self.player_2, objects=self.game_instance['objects_2'])
-        if self.modality in ['text', 'semantic_text']:
-            self.initial_board = "```\nPlayer 1:\n" + str(self.player_1.game_state) + "\n\nPlayer 2:\n" + str(self.player_2.game_state) + "\n```"
+        img_prefixes = {
+            self.player_1.name : self._prepare_initial_img_prefix(self.player_1, self.experiment["name"], game_instance["game_id"]),
+            self.player_2.name : self._prepare_initial_img_prefix(self.player_2, self.experiment["name"], game_instance["game_id"]),
+        }
 
-        self.initial_distance = self.player_1.game_state.distance_sum(self.player_2.game_state)
+        player_states = {
+            self.player_1.name : STATE_DICT[modality](background=game_instance['background'],
+                                                      move_messages=game_instance['move_messages'],
+                                                      objects=game_instance['objects_1'], img_prefix=img_prefixes[self.player_1.name]),
+            self.player_2.name : STATE_DICT[modality](background=game_instance['background'],
+                                                      move_messages=game_instance['move_messages'],
+                                                      objects=game_instance['objects_2'], img_prefix=img_prefixes[self.player_2.name])
+        }
 
-        self.success = False    # True if game finished regularly
-        self.terminate = False  # True if game game should end
-        self.aborted = False    # True if game is aborted due to a rule violation or parse error
-        self.penalties = 0      # Number of collectively accumulated penalties
-        self.max_penalties = self.game_instance['max_penalties']    # For strict mode, max_penalties is 0
-        self.pass_turn = True
-        self.max_rounds = self.game_instance['max_rounds']
+        restricted_patterns = []
+        for pattern in game_instance.get('restricted_patterns', []):
+            restricted_patterns.append(re.compile(pattern, re.DOTALL))
+        self.state = CleanUpGameState(
+            modality = modality,
+            intermittent_prompts = game_instance['intermittent_prompts'],
+            parse_errors = game_instance['parse_errors'],
+            say_pattern = re.compile(game_instance['say_pattern'], re.DOTALL),
+            move_pattern = re.compile(game_instance['move_pattern'], re.DOTALL),
+            restricted_patterns = restricted_patterns,
+            img_prefixes = img_prefixes,
+            player_states = player_states,
+            initial_board = "```\nPlayer 1:\n" + str(player_states[self.player_1.name]) + "\n\nPlayer 2:\n" + str(player_states[self.player_2.name]) + "\n```" if modality in ['text', 'semantic_text'] else None,
+            initial_distance = player_states[self.player_1.name].distance_sum(player_states[self.player_2.name]),
+            penalties = 0,
+            max_penalties = game_instance['max_penalties'],
+            max_rounds = game_instance['max_rounds'],
+            message_stats = {v: 0 for v in MESSAGE_STATS.values()},
+            p1_initial_prompt = game_instance['p1_initial_prompt'],
+            p2_initial_prompt = game_instance['p2_initial_prompt'],
+            terminate_question = game_instance['terminate_question'],
+            terminate_answer = game_instance['terminate_answer'],
+        )
 
-        self.metric_preparer = MetricPreparer(self, self.player_1, self.player_2)
-        self.message_stats = {v: 0 for v in MESSAGE_STATS.values()}
+        self.state.metric_preparer = MetricPreparer(self.state, self.player_1, self.player_2, lambda: self.current_round)
 
-    def add_player(self, player: Player, objects: List[GameObject] = None):
-        """
-        Add a player to the game. Needs to be implemented per modality.
-        """
-        super().add_player(player)
-        # Initialize img_prefix, consisting of experiment name, game instance ID, and player ID
-        id = len(self.players_by_names)  # Player IDs start from 1
-        img_prefix = f"{self.experiment['name']}_{self.game_instance['game_id']}_player{id}_{player._model.name}"
-        self.img_prefixes.append(img_prefix)
-        player.game_state = STATE_DICT[self.modality](background=self.game_instance['background'], move_messages=self.game_instance['move_messages'], objects=objects, img_prefix=img_prefix)
-    
+    def _prepare_initial_img_prefix(self, player, experiment_name, game_id):
+        return f"{experiment_name}_{game_id}_player{player.name}_{player._model.name}"
+
     def _other_player(self) -> Player:
         """
         Returns the player who will be next.
@@ -227,11 +257,11 @@ class CleanUpMaster(DialogueGameMaster):
         """
         Set the initial context for the first player.
         """
-        images = self.player_1.game_state.draw()  # returns None for GridState
+        images = self.state.player_states[self.player_1.name].draw()  # returns None for GridState
         if images:
-            self.set_context_for(self.player_1, self.game_instance['p1_initial_prompt'], image=images)
+            self.set_context_for(self.player_1, self.state.p1_initial_prompt, image=images)
         else:
-            self.set_context_for(self.player_1, self.game_instance['p1_initial_prompt'])
+            self.set_context_for(self.player_1, self.state.p1_initial_prompt)
 
     def _check_head_tail(self, match: re.Match) -> bool:
         """
@@ -242,71 +272,70 @@ class CleanUpMaster(DialogueGameMaster):
         tail = match.group('tail')
         if head != '' and tail != '':
             self.log_to_self('parse_error', f"Invalid format: head and tail are not empty\nhead: '{head}'\ntail: '{tail}'")
-            self.message_stats[MESSAGE_STATS['parse_error']] += 1
-            raise ParseError(reason=self.parse_errors["head_tail"], response=match.group(0))
+            self.state.message_stats[MESSAGE_STATS['parse_error']] += 1
+            raise ParseError(reason=self.state.parse_errors["head_tail"], response=match.group(0))
         elif head != '':
             self.log_to_self('parse_error', f"Invalid format: head is not empty: '{head}'")
-            self.message_stats[MESSAGE_STATS['parse_error']] += 1
-            raise ParseError(reason=self.parse_errors["head"], response=match.group(0))
+            self.state.message_stats[MESSAGE_STATS['parse_error']] += 1
+            raise ParseError(reason=self.state.parse_errors["head"], response=match.group(0))
         elif tail != '':
             self.log_to_self('parse_error', f"Invalid format: tail is not empty: '{tail}")
-            self.message_stats[MESSAGE_STATS['parse_error']] += 1
-            raise ParseError(reason=self.parse_errors["tail"], response=match.group(0))
+            self.state.message_stats[MESSAGE_STATS['parse_error']] += 1
+            raise ParseError(reason=self.state.parse_errors["tail"], response=match.group(0))
 
     def _parse_response(self, player: Player, response: str) -> str:
         logger.debug(f"{player.name}: {response}")
         self.log_to_self('player_response', response)
         # We just remove backticks
         response = response.replace('`', '').strip()
-        move_matches = list(self.move_pattern.finditer(response))
-        say_matches = list(self.say_pattern.finditer(response))
+        move_matches = list(self.state.move_pattern.finditer(response))
+        say_matches = list(self.state.say_pattern.finditer(response))
         if len(move_matches) + len(say_matches) > 1:
             self.log_to_self('parse_error', f"Invalid response format: {response}")
             logger.debug(f"Response '{response}' contains several commands.")
-            self.message_stats[MESSAGE_STATS['parse_error']] += 1
-            raise ParseError(reason=self.parse_errors["several_commands"], response=response)
+            self.state.message_stats[MESSAGE_STATS['parse_error']] += 1
+            raise ParseError(reason=self.state.parse_errors["several_commands"], response=response)
         move_match = move_matches[0] if move_matches else None
         say_match = say_matches[0] if say_matches else None
         if player == self.player_1 and self.current_round == 0 and not say_match:
             # In this case, the command needs to be a message
             self.log_to_self('parse_error', f"Invalid response: {response}")
             logger.debug(f"Response '{response}' is not a valid message, first command must be a message.")
-            self.message_stats[MESSAGE_STATS['parse_error']] += 1
-            raise ParseError(reason=self.parse_errors["invalid_start"], response=response)
+            self.state.message_stats[MESSAGE_STATS['parse_error']] += 1
+            raise ParseError(reason=self.state.parse_errors["invalid_start"], response=response)
         if move_match:
             self._check_head_tail(move_match)
             return response
         if say_match:
             self._check_head_tail(say_match)
-            if self.game_instance['terminate_question'] in say_match.group('message'):
+            if self.state.terminate_question in say_match.group('message'):
                 player.finished = True
-            if self.game_instance['terminate_answer'] in say_match.group('message') and self._other_player().finished:
-                self.success = True
-                self.terminate = True
+            if self.state.terminate_answer in say_match.group('message') and self._other_player().finished:
+                self.state.succeed()
                 self.log_to_self('success', 'true')
-            for restricted_pattern in self.restricted_patterns:
+            for restricted_pattern in self.state.restricted_patterns:
                 restricted_match = restricted_pattern.search(say_match.group('message'))
                 if restricted_match:
-                    self.pass_turn = False
+                    self.state.pass_turn = False
                     self.log_to_self('rule_violation', f"Response violates restriction: {restricted_pattern}")
-                    self.message_stats[MESSAGE_STATS['parse_error']] += 1
-                    raise ParseError(reason=self.parse_errors["restriction"], response=response)
+                    self.state.message_stats[MESSAGE_STATS['parse_error']] += 1
+                    raise ParseError(reason=self.state.parse_errors["restriction"], response=response)
             return response
         else:
             self.log_to_self('parse_error', f"Invalid response format")
-            self.message_stats[MESSAGE_STATS['parse_error']] += 1
-            raise ParseError(reason=self.parse_errors["invalid_format"], response=response)
+            self.state.message_stats[MESSAGE_STATS['parse_error']] += 1
+            raise ParseError(reason=self.state.parse_errors["invalid_format"], response=response)
 
     def _on_parse_error(self, error: GameError):
-        self.pass_turn = False
-        self.penalties += 1
+        self.state.pass_turn = False
+        self.state.penalties += 1
         logger.debug(f"Parse error: {error}")
         message = self._reprompt_message(error.reason)
         self.set_context_for(self._current_player, message)
 
     def _reprompt_message(self, reason) -> str:
-        message = Template(self.intermittent_prompts['invalid_response']).substitute(reason=reason)
-        message += '\n' + self._penalty_counter_message() + self.intermittent_prompts['penalty_reprompt']
+        message = Template(self.state.intermittent_prompts['invalid_response']).substitute(reason=reason)
+        message += '\n' + self._penalty_counter_message() + self.state.intermittent_prompts['penalty_reprompt']
         return message
 
     def _should_pass_turn(self) -> bool:
@@ -315,63 +344,63 @@ class CleanUpMaster(DialogueGameMaster):
         """
         # When working with inference providers, uncomment the following line to not exceed free inference budget too quickly.
         # time.sleep(random.uniform(1, 2))
-        return self.pass_turn
+        return self.state.pass_turn
 
     def _start_next_round(self) -> bool:
         """
         :return: True, when it's the first player's turn to start a new round
         """
-        if self.pass_turn:
-            return self._current_player_idx == 0     
+        if self.state.pass_turn:
+            return self._current_player_idx == 0
         else:
             return False
 
     def _advance_game(self, player: Player, parsed_response: str):
         if not parsed_response:
             raise RuleViolationError
-        match = self.move_pattern.match(parsed_response)
+        match = self.state.move_pattern.match(parsed_response)
         if match:
             obj = match.group('obj')
             x = match.group('x')
             y = match.group('y')
-            success, message, images = player.game_state.move_abs(obj, x, y)
-            self.pass_turn = success
+            success, message, images = self.state.player_states[player.name].move_abs(obj, x, y)
+            self.state.pass_turn = success
             if success:
                 logger.debug(f"{player.name} moved {obj} to ({x}, {y}) successfully.")
-                self.metric_preparer.add_move((player.name, obj))
+                self.state.metric_preparer.add_move((player.name, obj))
                 # log the move message to the player and add it to the message history (without response)
                 self.log_to_self('valid_move', f'{obj} moved to ({x}, {y})')
-                self.message_stats[MESSAGE_STATS['valid_move']] += 1
+                self.state.message_stats[MESSAGE_STATS['valid_move']] += 1
                 player.store_relay_message(message, images=images)
                 # turn is passed to the other player
-                next_player_prompt = self._new_turn_prompt(self.intermittent_prompts["new_turn_move"])
+                next_player_prompt = self._new_turn_prompt(self.state.intermittent_prompts["new_turn_move"])
                 self.set_context_for(self._other_player(), next_player_prompt)
             if not success:
                 logger.debug(f"{player.name} failed to move {obj} to ({x}, {y}): {message}")
-                # Player is reprompted with a penalty, their turn continues. 
-                self.penalties += 1
-                message = message + "\n" + Template(self.intermittent_prompts['penalty_counter']).substitute(penalty=self.penalties) + self.intermittent_prompts['penalty_reprompt']
+                # Player is reprompted with a penalty, their turn continues.
+                self.state.penalties += 1
+                message = message + "\n" + Template(self.state.intermittent_prompts['penalty_counter']).substitute(penalty=self.state.penalties) + self.state.intermittent_prompts['penalty_reprompt']
                 self.log_to_self('invalid_move', message)
-                self.message_stats[MESSAGE_STATS['invalid_move']] += 1
+                self.state.message_stats[MESSAGE_STATS['invalid_move']] += 1
                 self.set_context_for(player, message)
                 raise RuleViolationError(f"Invalid move: {message}")
         else:
-            match = self.say_pattern.match(parsed_response)
+            match = self.state.say_pattern.match(parsed_response)
             if match:
                 message = match.group('message')
-                self.pass_turn = True
-                player.store_relay_message(Template(self.intermittent_prompts['message_relay']).substitute(message=message))
+                self.state.pass_turn = True
+                player.store_relay_message(Template(self.state.intermittent_prompts['message_relay']).substitute(message=message))
                 if player == self.player_1 and self.current_round == 0:
-                    p2_initial_prompt = Template(self.game_instance['p2_initial_prompt']).substitute(
+                    p2_initial_prompt = Template(self.state.p2_initial_prompt).substitute(
                         start_message=message
                     )
-                    images = self.player_2.game_state.draw() # returns None for text-based versions
+                    images = self.state.player_states[self.player_2.name].draw() # returns None for text-based versions
                     if images:
                         self.set_context_for(self.player_2, p2_initial_prompt, image=images)
                     else:
                         self.set_context_for(self.player_2, p2_initial_prompt)
                 else:
-                    next_player_prompt = self._new_turn_prompt(Template(self.intermittent_prompts['new_turn']).substitute(turn_message=message))
+                    next_player_prompt = self._new_turn_prompt(Template(self.state.intermittent_prompts['new_turn']).substitute(turn_message=message))
                     self.set_context_for(self._other_player(), next_player_prompt)
 
     def _new_turn_prompt(self, content: str) -> str:
@@ -381,7 +410,7 @@ class CleanUpMaster(DialogueGameMaster):
         :return: The new prompt with round and penalty counters.
         """
         content = self._counter_messages() + content
-        content += self.intermittent_prompts["command_prompt"]
+        content += self.state.intermittent_prompts["command_prompt"]
         return content
 
     def _counter_messages(self) -> str:
@@ -394,7 +423,7 @@ class CleanUpMaster(DialogueGameMaster):
         """
         Returns a message with the current turn count.
         """
-        return Template(self.intermittent_prompts['round_counter']).substitute(
+        return Template(self.state.intermittent_prompts['round_counter']).substitute(
             round=self.current_round + 1
         )
             
@@ -402,47 +431,39 @@ class CleanUpMaster(DialogueGameMaster):
         """
         Returns a message with the current penalty count.
         """
-        return Template(self.intermittent_prompts['penalty_counter']).substitute(
-            penalty=self.penalties
+        return Template(self.state.intermittent_prompts['penalty_counter']).substitute(
+            penalty=self.state.penalties
         )
 
-    def _does_game_proceed(self):
-        """
-        Check if the game should continue.
-        """
-        if self.penalties > self.max_penalties:
+    def _on_after_round(self):
+        if self.state.penalties > self.state.max_penalties:
             self.log_to_self('end', 'Maximum number of penalties exceeded')
-            self.aborted = True
-            return False
-        if self.terminate:
-            return False
-        if self.current_round >= self.max_rounds:  # Arbitrary limit for rounds
+            self.state.abort()
+        elif (self.current_round + 1) >= self.state.max_rounds:  # Arbitrary limit for rounds
             logger.info("Maximum number of rounds reached, ending game.")
             self.log_to_self('end', 'Maximum number of rounds reached')
             # Reaching the maximum number of rounds is considered a success
-            self.success = True
-            return False
-        return True
+            self.state.succeed()
 
     def compute_turn_score(self):
-        return 1 if self.success else 0
+        return 1 if self.state.outcome == Outcome.SUCCESS else 0
 
     def compute_episode_score(self):
-        if self.success:
+        if self.state.outcome == Outcome.SUCCESS:
             return 100 / (self.current_round + 1)  # zero-based
         return 0
     
     def _after_game_logs(self):
-        if self.modality == 'image':
+        if self.state.modality == 'image':
             for player in self.get_players():
-                move_image = player.game_state.draw_moves()
+                move_image = self.state.player_states[player.name].draw_moves()
                 if move_image:
                     log_images(self, move_image, player)
 
     def _on_after_game(self):
         self._after_game_logs()
         self.log_key("markdown", True)
-        ingredients = self.metric_preparer.compute_ingredients()
+        ingredients = self.state.metric_preparer.compute_ingredients()
         ingredients_string = ""
         for key, val in ingredients.items():
             # log all the necessary metrics to `interaction.json`
@@ -454,22 +475,24 @@ class CleanUpMaster(DialogueGameMaster):
                 else:
                     ingredients_string += f"* {key}: {float(val):.2f}\n"
 
-        lose = not self.success
-        if self.success:
-            # If the game is terminated successfully, we check whether 
+        success = self.state.outcome == Outcome.SUCCESS
+        aborted = self.state.outcome == Outcome.ABORTED
+        lose = not success
+        if success:
+            # If the game is terminated successfully, we check whether
             # the end distance is greater than the expected distance
             lose = ingredients[END_DISTANCE_SUM] > ingredients[EXPECTED_DISTANCE_SUM]
 
-        self.log_key(METRIC_ABORTED, int(self.aborted))
+        self.log_key(METRIC_ABORTED, int(aborted))
         self.log_key(METRIC_LOSE, int(lose))
-        self.log_key(METRIC_SUCCESS, int(self.success))
-        if self.modality in ['text', 'semantic_text']:
-            self.log_to_self("initial_state", "Initial states:\n" + self.initial_board)
-            self.log_to_self("end_state", "End states:\n```\nPlayer 1:\n" + str(self.player_1.game_state) + "\n\nPlayer 2:\n" + str(self.player_2.game_state) + "\n```")
+        self.log_key(METRIC_SUCCESS, int(success))
+        if self.state.modality in ['text', 'semantic_text']:
+            self.log_to_self("initial_state", "Initial states:\n" + self.state.initial_board)
+            self.log_to_self("end_state", "End states:\n```\nPlayer 1:\n" + str(self.state.player_states[self.player_1.name]) + "\n\nPlayer 2:\n" + str(self.state.player_states[self.player_2.name]) + "\n```")
 
-        self.log_to_self('game_finished', f"* success: {self.success}\n* lose: {lose}\n* aborted: {self.aborted}\n-------\n{ingredients_string}") 
+        self.log_to_self('game_finished', f"* success: {success}\n* lose: {lose}\n* aborted: {aborted}\n-------\n{ingredients_string}")
 
-        for key, val in self.message_stats.items():
+        for key, val in self.state.message_stats.items():
             self.log_key(key, val)           
         
         # ----------------------------------------------------------

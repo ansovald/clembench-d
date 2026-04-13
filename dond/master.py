@@ -11,6 +11,7 @@ from clemcore.backends import Model
 from clemcore.clemgame import GameSpec, GameMaster, DialogueGameMaster, GameScorer, GameBenchmark, Player
 from clemcore.clemgame import ParseError, RuleViolationError, GameError
 from clemcore.clemgame.metrics import METRIC_ABORTED, METRIC_SUCCESS, METRIC_LOSE, BENCH_SCORE
+from clemcore.clemgame.master import GameState, Outcome
 
 from nltk.stem.snowball import SnowballStemmer
 
@@ -96,7 +97,6 @@ def pareto_improvement(counts: list[int], values_a: list[int], values_b: list[in
             best = max(best, max(points_a - current_a, points_b - current_b))
     return best
 
-
 class DealOrNoDealPlayer(Player):
     def __init__(self, model: Model):
         super().__init__(model)
@@ -113,7 +113,7 @@ class DealOrNoDealPlayer(Player):
 
 
 @dataclass
-class GameState:
+class DealOrNoDealGameState(GameState):
     mode: str
     language: str
     max_rounds: int
@@ -126,11 +126,11 @@ class GameState:
     item_counts: list[int]
     player_a_values: list[int]
     player_b_values: list[int]
-    success: bool = False   # Success is if a compromise is reached.
-    failure: bool = False  # Failure is when the proposals were conflicting.
-    aborted: bool = False   # Aborted means the game rules were broken.
     player_a_proposal: list[int] | None = None
     player_b_proposal: list[int] | None = None
+
+    def __post_init__(self):
+        super().__init__()
 
 
 class DealOrNoDeal(DialogueGameMaster):
@@ -170,7 +170,7 @@ class DealOrNoDeal(DialogueGameMaster):
         self.add_player(self.player_a, initial_context=player_a_initial_prompt)
         self.add_player(self.player_b, initial_prompt=player_b_initial_prompt)
         # Named arguments to avoid any order sensitivity.
-        self.state = GameState(
+        self.state = DealOrNoDealGameState(
             mode=self.experiment['mode'],
             language=self.experiment['language'],
             max_rounds=self.experiment['max_turns'],
@@ -191,12 +191,6 @@ class DealOrNoDeal(DialogueGameMaster):
             'de': 'german',
             'it': 'italian',
         }[self.experiment['language']])
-
-    def _does_game_proceed(self):
-        return not (
-            self.state.aborted or self.state.aborted
-            or self.state.failure or self.state.success
-        )
 
     def _parse_response(self, player: Player, response: str) -> str | list[int]:
         # Check if the message contains a proposal.
@@ -257,7 +251,7 @@ class DealOrNoDeal(DialogueGameMaster):
 
     def _on_parse_error(self, error: ParseError):
         self.log_to_self('invalid format', error.reason)
-        self.state.aborted = True
+        self.state.abort()
 
     def _advance_game(self, player: Player, parsed_response: str | list[int]):
         # Sleep to prevent rate limit hits. This is just below the free tier limits
@@ -333,7 +327,7 @@ class DealOrNoDeal(DialogueGameMaster):
                         (self.state.player_a_proposal,
                          self.state.player_b_proposal)
                     )
-                    self.state.failure = True
+                    self.state.failed()
                 else:
                     # Record that there was a successful agreement.
                     self.log_to_self(
@@ -341,11 +335,11 @@ class DealOrNoDeal(DialogueGameMaster):
                         (self.state.player_a_proposal,
                          self.state.player_b_proposal)
                     )
-                    self.state.success = True
+                    self.state.succeed()
 
     def _on_game_error(self, error: GameError):
         self.log_to_self('error', error.reason)
-        self.state.aborted = True
+        self.state.abort()
 
     def compute_turn_score(self):
         # Just use the episode score. It's not really possible to give a per
@@ -354,7 +348,7 @@ class DealOrNoDeal(DialogueGameMaster):
 
     def compute_sum_of_scores(self) -> int:
         # Players only get points in the case of success.
-        if self.state.success:
+        if self.state.outcome == Outcome.SUCCESS:
             assert self.state.player_a_proposal is not None
             assert self.state.player_b_proposal is not None
             return compute_score(
@@ -398,7 +392,7 @@ class DealOrNoDeal(DialogueGameMaster):
             # optimal one is just the maximum achievable.
             return self.compute_maximal_sum_of_scores() - self.compute_sum_of_scores()
         elif self.state.mode == 'semi':
-            if self.state.success:
+            if self.state.outcome == Outcome.SUCCESS:
                 # On success compute based on proposals.
                 assert self.state.player_a_proposal is not None
                 assert self.state.player_b_proposal is not None
@@ -434,9 +428,9 @@ class DealOrNoDeal(DialogueGameMaster):
             raise ValueError('unknown game mode')
 
     def _on_after_game(self):
-        self.log_key(METRIC_ABORTED, int(self.state.aborted))
-        self.log_key(METRIC_LOSE, int(self.state.failure))
-        self.log_key(METRIC_SUCCESS, int(self.state.success))
+        self.log_key(METRIC_ABORTED, int(self.state.outcome == Outcome.ABORTED))
+        self.log_key(METRIC_LOSE, int(self.state.outcome == Outcome.FAILURE))
+        self.log_key(METRIC_SUCCESS, int(self.state.outcome == Outcome.SUCCESS))
         # Some extra custom values that represent the final result of the game.
         self.log_key('player_a_proposal', self.state.player_a_proposal)
         self.log_key('player_b_proposal', self.state.player_b_proposal)
