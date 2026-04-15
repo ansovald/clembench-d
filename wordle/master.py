@@ -142,7 +142,7 @@ class ReflectingWordGuesser(WordGuesser):
 
 def parse_response(player: Player, response: str, words: Dict) -> Tuple[str, str]:
     """Parse guesser response and extract guess and explanation"""
-    if not response or not response.startswith(words["explanation_lang"]):
+    if not response or not response.lower().startswith(words["explanation_lang"].lower()):
         raise ParseError(f"The response should always start with the keyword '{words['explanation_lang']}'",
                          key="INVALID_START_WORD")
 
@@ -157,7 +157,10 @@ def parse_response(player: Player, response: str, words: Dict) -> Tuple[str, str
     content_pattern = re.compile(rf"{content_prefix}([^\n]*)", re.IGNORECASE)
 
     explanation_match = explanation_pattern.search(response)
-    content_match = content_pattern.findall(response)
+    # Only search for the content keyword after the explanation match ends to avoid
+    # false matches when the explanation text itself contains the keyword (e.g. "guess:")
+    search_region = response[explanation_match.end():] if explanation_match else ""
+    content_match = content_pattern.findall(search_region)
 
     if len(content_match) != 1:
         raise ParseError(f"The response should contain the '{content_prefix}' keyword exactly once.",
